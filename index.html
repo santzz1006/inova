@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Camaçari INOVA</title>
+  <meta name="description" content="Plataforma que mapeia organizações, competências, recursos e demandas de Camaçari e região e promove conexões e parcerias de inovação.">
+  <link rel="icon" href="logo.inova.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===== Ícones SVG (sprite) ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-map" viewBox="0 0 24 24"><path d="M12 22s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2v.1h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2.5 20c.5-3.5 3.3-5.5 6.5-5.5s6 2 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c2 .6 3.3 2.3 3.5 5.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M5 19c-1 0-2-1-2-2 0-2 1-4 3-4l2 2c0 2-2 4-3 4zM9 15l-2-2c1-4 4-8 13-9 0 9-5 12-9 11zM15 9h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h14V10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24"><path d="M4 21V4h10v17M14 9h6v12M2 21h20M8 8h2M8 12h2M8 16h2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21c.7-4 4-6 8-6s7.3 2 8 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3zM9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13 7l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M4 20h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<a class="skip" href="#sobre">Pular para o conteúdo</a>
+
+<!-- =========================================================
+     SITE PÚBLICO
+========================================================= -->
+<div id="site">
+  <header class="header" id="header">
+    <a class="brand" href="#inicio" aria-label="Camaçari INOVA - início">
+      <img class="logo" src="logo.inova.svg" alt="Logo Camaçari INOVA">
+      <span>Camaçari<strong>INOVA</strong></span>
+    </a>
+    <button class="menu-btn" id="menuBtn" aria-label="Abrir menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    <nav class="nav" id="nav">
+      <a href="#sobre">Sobre</a>
+      <a href="#mapa">Mapa</a>
+      <a href="#diagnostico">Diagnóstico</a>
+      <a href="#cadastro">Cadastro</a>
+      <span class="nav-auth" id="navAuth"></span>
+    </nav>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero" id="inicio">
+      <div class="hero-bg" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="container hero-content">
+        <p class="eyebrow">Ecossistema de inovação</p>
+        <h1>Camaçari <span class="hl">INOVA</span></h1>
+        <p class="lead">Conectando organizações e oportunidades para fortalecer a inovação, potencializando suas iniciativas.</p>
+        <div class="hero-cta">
+          <a href="#mapa" class="btn btn-orange"><svg class="ic"><use href="#i-map"/></svg>Explorar o mapa</a>
+          <button class="btn btn-ghost" type="button" data-action="new-org"><svg class="ic"><use href="#i-building"/></svg>Cadastrar organização</button>
+          <a href="#diagnostico" class="btn btn-link"><svg class="ic"><use href="#i-chart"/></svg>Fazer diagnóstico</a>
+        </div>
+        <ul class="stats">
+          <li><b id="statOrgs">0</b><span>Organizações no mapa</span></li>
+          <li><b id="statTipos">0</b><span>Tipos de atores</span></li>
+          <li><b id="statComp">0</b><span>Competências</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SOBRE -->
+    <section class="section" id="sobre">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="eyebrow dark">Sobre</p>
+          <h2>Sobre a Central INOVA</h2>
+          <p>A Central INOVA é uma plataforma destinada a mapear organizações, identificar competências, recursos, tecnologias e demandas disponíveis e aproximar atores que possam desenvolver projetos e parcerias.</p>
+        </div>
+        <div class="features">
+          <article class="feature reveal"><svg class="ic-lg c-orange"><use href="#i-map"/></svg><h3>Mapear</h3><p>Mapa interativo com organizações, competências e recursos do território.</p></article>
+          <article class="feature reveal"><svg class="ic-lg c-navy"><use href="#i-link"/></svg><h3>Conectar</h3><p>Aproximamos atores que podem desenvolver projetos e parcerias juntos.</p></article>
+          <article class="feature reveal"><svg class="ic-lg c-orange"><use href="#i-bulb"/></svg><h3>Inovar</h3><p>Acesso facilitado a oportunidades e estímulo à colaboração.</p></article>
+          <article class="feature reveal"><svg class="ic-lg c-navy"><use href="#i-users"/></svg><h3>Fortalecer</h3><p>Uma base de informações organizada para fortalecer o ecossistema.</p></article>
+        </div>
+        <p class="goal reveal"><svg class="ic"><use href="#i-rocket"/></svg><span><strong>Nosso objetivo:</strong> transformar informações em conexões e conexões em oportunidades.</span></p>
+      </div>
+    </section>
+
+    <!-- MAPA -->
+    <section class="section section-navy" id="mapa">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="eyebrow">Mapa</p>
+          <h2>Explore o mapa</h2>
+          <p>Filtre por tipo de ator, busque por nome ou competência e clique em uma organização. Para ver os detalhes completos é preciso estar logado.</p>
+        </div>
+
+        <div class="toolbar reveal">
+          <label class="search">
+            <svg class="ic"><use href="#i-search"/></svg>
+            <input type="search" id="searchInput" placeholder="Buscar organização ou competência…" autocomplete="off">
+          </label>
+          <div class="filters" id="chips" role="group" aria-label="Filtrar por tipo de ator"></div>
+        </div>
+
+        <div class="map-wrap reveal">
+          <div id="map" aria-label="Mapa de organizações"></div>
+          <aside class="list" id="list" aria-live="polite"></aside>
+        </div>
+
+        <p class="note">
+          <a href="https://www.google.com/maps/d/edit?mid=1tgpJ5Va4RZzmdD40P3ccofHM2WxfHg0&usp=sharing" target="_blank" rel="noopener">Abrir o mapa original no Google <svg class="ic"><use href="#i-arrow"/></svg></a>
+        </p>
+      </div>
+    </section>
+
+    <!-- DIAGNÓSTICO -->
+    <section class="section" id="diagnostico">
+      <div class="container narrow">
+        <div class="section-head reveal">
+          <p class="eyebrow dark">Questionário</p>
+          <h2>Diagnóstico de Inovação</h2>
+          <p>Responda 8 perguntas rápidas e descubra o nível de maturidade da sua organização e os próximos passos.</p>
+        </div>
+        <div class="quiz reveal" id="quiz">
+          <div class="quiz-top">
+            <span id="quizStep">Pergunta 1 de 8</span>
+            <div class="progress"><div id="quizBar"></div></div>
+          </div>
+          <div id="quizBody"></div>
+          <div class="quiz-nav">
+            <button class="btn btn-ghost-dark" id="prevBtn" type="button">Voltar</button>
+            <button class="btn btn-orange" id="nextBtn" type="button" disabled>Próxima <svg class="ic"><use href="#i-arrow"/></svg></button>
+          </div>
+        </div>
+        <div class="result" id="result" hidden></div>
+      </div>
+    </section>
+
+    <!-- CADASTRO -->
+    <section class="section section-lime" id="cadastro">
+      <div class="container cta-box reveal">
+        <div>
+          <h2>Cadastre sua organização</h2>
+          <p>Crie sua conta, preencha o formulário e, após análise da equipe, sua organização aparece no mapa.</p>
+        </div>
+        <div class="cta-actions">
+          <button class="btn btn-navy" type="button" data-action="new-org">Cadastrar organização <svg class="ic"><use href="#i-arrow"/></svg></button>
+          <button class="btn btn-ghost-dark" type="button" data-action="login">Já tenho conta</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <span class="brand"><img class="logo" src="logo.inova.svg" alt=""><span>Camaçari<strong>INOVA</strong></span></span>
+      <nav class="foot-nav" aria-label="Rodapé">
+        <a href="#sobre">Sobre</a><a href="#mapa">Mapa</a><a href="#diagnostico">Diagnóstico</a>
+        <button type="button" data-action="register">Criar conta</button>
+      </nav>
+      <small>Transformando informações em conexões e conexões em oportunidades.</small>
+    </div>
+  </footer>
+
+  <button class="to-top" id="toTop" type="button" aria-label="Voltar ao topo"><svg class="ic" style="transform:rotate(-90deg)"><use href="#i-arrow"/></svg></button>
+</div>
+
+<!-- =========================================================
+     ÁREA LOGADA (menu lateral)
+========================================================= -->
+<div id="app" class="app" hidden>
+  <aside class="side" id="side">
+    <a class="brand" href="#inicio"><img class="logo" src="logo.inova.svg" alt="Logo"><span>Camaçari<strong>INOVA</strong></span></a>
+    <nav aria-label="Menu da conta">
+      <button type="button" data-action="app" data-view="dashboard"><svg class="ic"><use href="#i-home"/></svg>Painel</button>
+      <button type="button" data-action="app" data-view="nova"><svg class="ic"><use href="#i-plus"/></svg>Nova organização</button>
+      <button type="button" data-action="app" data-view="minhas"><svg class="ic"><use href="#i-building"/></svg>Minhas organizações</button>
+      <button type="button" data-action="app" data-view="moderacao" id="navMod" hidden><svg class="ic"><use href="#i-shield"/></svg>Moderação <span class="count" id="modCount"></span></button>
+      <button type="button" data-action="app" data-view="perfil"><svg class="ic"><use href="#i-user"/></svg>Meu perfil</button>
+      <hr>
+      <button type="button" data-action="site" data-target="mapa"><svg class="ic"><use href="#i-map"/></svg>Ver mapa</button>
+      <button type="button" data-action="site" data-target="diagnostico"><svg class="ic"><use href="#i-chart"/></svg>Diagnóstico</button>
+      <button type="button" data-action="site" data-target="inicio"><svg class="ic"><use href="#i-arrow" style="transform:scaleX(-1)"/></svg>Voltar ao site</button>
+    </nav>
+    <div class="side-user">
+      <div class="avatar" id="sideAvatar">?</div>
+      <div class="who"><b id="sideName">Usuário</b><small id="sideRole">Conta</small></div>
+      <button type="button" class="icon-btn" data-action="logout" aria-label="Sair" title="Sair"><svg class="ic"><use href="#i-logout"/></svg></button>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim" data-action="toggle-side"></div>
+
+  <div class="main">
+    <div class="topbar">
+      <button type="button" class="icon-btn only-mobile" data-action="toggle-side" aria-label="Abrir menu lateral"><svg class="ic"><use href="#i-menu"/></svg></button>
+      <h1 id="viewTitle">Painel</h1>
+    </div>
+
+    <!-- PAINEL -->
+    <section data-view="dashboard">
+      <p class="muted" id="dashHello"></p>
+      <div class="kpis" id="kpis"></div>
+      <div class="quick">
+        <button class="btn btn-orange" type="button" data-action="app" data-view="nova"><svg class="ic"><use href="#i-plus"/></svg>Cadastrar organização</button>
+        <button class="btn btn-ghost-dark" type="button" data-action="site" data-target="diagnostico"><svg class="ic"><use href="#i-chart"/></svg>Fazer diagnóstico</button>
+        <button class="btn btn-ghost-dark" type="button" data-action="site" data-target="mapa"><svg class="ic"><use href="#i-map"/></svg>Ver mapa</button>
+      </div>
+      <div class="panel" id="dashDiag"></div>
+      <h2 class="h2">Atividade recente</h2>
+      <div class="rows" id="dashRecent"></div>
+    </section>
+
+    <!-- NOVA ORGANIZAÇÃO -->
+    <section data-view="nova" hidden>
+      <div class="panel intro">
+        <h2 id="formTitle">📌 Apresentação / Objetivo</h2>
+        <p><strong>Objetivo:</strong> mapear organizações, competências, recursos, tecnologias e demandas do ecossistema, promovendo conexões e oportunidades de colaboração.</p>
+        <p class="note-box"><strong>Nota:</strong> as informações serão analisadas pela equipe responsável e somente os dados autorizados e aprovados serão publicados na Central de Conexões.</p>
+      </div>
+
+      <form id="orgForm" class="panel" novalidate autocomplete="off">
+        <div class="quiz-top">
+          <span id="fStepLbl">Seção 1 de 4</span>
+          <div class="progress"><div id="fBar"></div></div>
+        </div>
+
+        <!-- Seção 1 -->
+        <fieldset class="step">
+          <legend>📄 Seção 1: Identificação Básica</legend>
+          <div class="field"><label for="f-nome">Nome da Organização <i>*</i></label><input id="f-nome" name="nome" type="text" maxlength="120"><span class="err" data-err="nome"></span></div>
+          <div class="field"><label for="f-tipo">Tipo de Ator <i>*</i></label>
+            <select id="f-tipo" name="tipo"></select><span class="err" data-err="tipo"></span></div>
+        </fieldset>
+
+        <!-- Seção 2 -->
+        <fieldset class="step" hidden>
+          <legend>📍 Seção 2: Endereço / Área de Atuação</legend>
+          <div class="grid2">
+            <div class="field"><label for="f-cep">CEP <i>*</i></label><input id="f-cep" name="cep" type="text" inputmode="numeric" placeholder="00000-000" maxlength="9"><span class="err" data-err="cep"></span><small class="hint" id="cepHint"></small></div>
+            <div class="field"><label for="f-numero">Número do endereço <i>*</i></label><input id="f-numero" name="numero" type="text" maxlength="12"><span class="err" data-err="numero"></span></div>
+          </div>
+          <div class="field"><label for="f-rua">Rua <i>*</i></label><input id="f-rua" name="rua" type="text" maxlength="120"><span class="err" data-err="rua"></span></div>
+          <div class="grid2">
+            <div class="field"><label for="f-bairro">Bairro <i>*</i></label><input id="f-bairro" name="bairro" type="text" maxlength="80"><span class="err" data-err="bairro"></span></div>
+            <div class="field"><label for="f-cidade">Cidade <i>*</i></label><input id="f-cidade" name="cidade" type="text" list="cidadesList" maxlength="80"><datalist id="cidadesList"></datalist><span class="err" data-err="cidade"></span></div>
+          </div>
+          <div class="field">
+            <label>Área de Atuação <i>*</i> <small>(selecione uma ou mais cidades/regiões)</small></label>
+            <div class="checks" id="areasBox"></div>
+            <div class="mini-actions"><button type="button" class="link-btn" data-action="areas-all">Marcar todas</button><button type="button" class="link-btn" data-action="areas-none">Limpar</button></div>
+            <span class="err" data-err="areas"></span>
+          </div>
+        </fieldset>
+
+        <!-- Seção 3 -->
+        <fieldset class="step" hidden>
+          <legend>🏢 Seção 3: Conhecendo sua Organização</legend>
+          <div class="field"><label for="f-desc">Descrição Institucional <i>*</i></label><textarea id="f-desc" name="desc" rows="4" maxlength="1200"></textarea><span class="err" data-err="desc"></span></div>
+          <div class="field"><label for="f-comp">Competências e Tecnologias Disponíveis</label><textarea id="f-comp" name="comp" rows="3" maxlength="800" placeholder="Separe por vírgula. Ex.: Desenvolvimento de software, Análise de dados, Automação industrial"></textarea></div>
+          <div class="field"><label for="f-rec">Recursos Disponíveis Para Colaboração</label><textarea id="f-rec" name="rec" rows="3" maxlength="800" placeholder="Ex.: Laboratórios, equipe técnica, espaço para eventos, equipamentos"></textarea></div>
+          <div class="field"><label for="f-dem">Demandas / Necessidades Atuais</label><textarea id="f-dem" name="dem" rows="3" maxlength="800" placeholder="Ex.: Busca de parceiros de pesquisa, mentoria, investimento"></textarea></div>
+        </fieldset>
+
+        <!-- Seção 4 -->
+        <fieldset class="step" hidden>
+          <legend>📞 Seção 4: Informações para Contato e Autorização</legend>
+          <div class="field"><label for="f-site">Site Institucional <small>(insira o link)</small></label><input id="f-site" name="site" type="url" placeholder="https://"><span class="err" data-err="site"></span></div>
+          <div class="field"><label for="f-email">E-mail Institucional Para Contato</label><input id="f-email" name="email" type="email" placeholder="contato@organizacao.com.br"><span class="err" data-err="email"></span></div>
+          <div class="field">
+            <label>Autoriza a publicação das informações institucionais fornecidas neste formulário na CENTRAL INOVA? <i>*</i></label>
+            <label class="radio"><input type="radio" name="autoriza" value="sim"><span>Sim, autorizo a publicação das informações institucionais.</span></label>
+            <label class="radio"><input type="radio" name="autoriza" value="nao"><span>Não autorizo a publicação das informações institucionais.</span></label>
+            <span class="err" data-err="autoriza"></span>
+          </div>
+          <div class="help-box">
+            <svg class="ic"><use href="#i-help"/></svg>
+            <span>Precisa de ajuda para estruturar as respostas da sua organização ou preparar os textos para preencher esse formulário?</span>
+            <button type="button" class="btn btn-ghost-dark btn-sm" data-action="help">Ver dicas de preenchimento</button>
+          </div>
+        </fieldset>
+
+        <div class="quiz-nav">
+          <button class="btn btn-ghost-dark" id="fPrev" type="button">Voltar</button>
+          <div class="nav-right">
+            <button class="btn btn-ghost-dark" type="button" data-action="cancel-form">Cancelar</button>
+            <button class="btn btn-orange" id="fNext" type="button">Próxima seção <svg class="ic"><use href="#i-arrow"/></svg></button>
+            <button class="btn btn-orange" id="fSubmit" type="submit" hidden>Enviar para análise</button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- MINHAS ORGANIZAÇÕES -->
+    <section data-view="minhas" hidden>
+      <div class="bar-actions">
+        <p class="muted">Aqui você acompanha o status das organizações que cadastrou.</p>
+        <button class="btn btn-orange btn-sm" type="button" data-action="app" data-view="nova"><svg class="ic"><use href="#i-plus"/></svg>Nova organização</button>
+      </div>
+      <div class="rows" id="myOrgs"></div>
+    </section>
+
+    <!-- MODERAÇÃO -->
+    <section data-view="moderacao" hidden>
+      <p class="muted">Organizações aguardando análise. Ao aprovar, a organização (com autorização de publicação) passa a aparecer no mapa.</p>
+      <div class="rows" id="modList"></div>
+      <h2 class="h2">Todas as organizações cadastradas</h2>
+      <div class="rows" id="allOrgs"></div>
+    </section>
+
+    <!-- PERFIL -->
+    <section data-view="perfil" hidden>
+      <div class="profile-grid">
+        <form id="profForm" class="panel" novalidate>
+          <h2 class="h2 first">Dados pessoais</h2>
+          <div class="field"><label for="p-nome">Nome completo</label><input id="p-nome" name="nome" type="text" maxlength="100" required></div>
+          <div class="field"><label for="p-email">E-mail (login)</label><input id="p-email" name="email" type="email" disabled></div>
+          <div class="grid2">
+            <div class="field"><label for="p-tel">Telefone</label><input id="p-tel" name="tel" type="tel" maxlength="20" placeholder="(71) 90000-0000"></div>
+            <div class="field"><label for="p-cargo">Cargo / Função</label><input id="p-cargo" name="cargo" type="text" maxlength="80"></div>
+          </div>
+          <button class="btn btn-orange" type="submit">Salvar alterações</button>
+        </form>
+
+        <form id="pwdForm" class="panel" novalidate>
+          <h2 class="h2 first">Alterar senha</h2>
+          <div class="field"><label for="pw-old">Senha atual</label><input id="pw-old" type="password" autocomplete="current-password"></div>
+          <div class="field"><label for="pw-new">Nova senha <small>(mínimo 8 caracteres)</small></label><input id="pw-new" type="password" autocomplete="new-password"></div>
+          <div class="field"><label for="pw-new2">Confirmar nova senha</label><input id="pw-new2" type="password" autocomplete="new-password"></div>
+          <button class="btn btn-navy" type="submit">Atualizar senha</button>
+        </form>
+
+        <div class="panel">
+          <h2 class="h2 first">Meus dados e conta</h2>
+          <p class="muted">Baixe uma cópia dos seus dados ou exclua sua conta e as organizações cadastradas por ela.</p>
+          <div class="quick">
+            <button class="btn btn-ghost-dark" type="button" data-action="export"><svg class="ic"><use href="#i-download"/></svg>Exportar meus dados</button>
+            <button class="btn btn-danger" type="button" data-action="delete-account"><svg class="ic"><use href="#i-trash"/></svg>Excluir minha conta</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- =========================================================
+     DIÁLOGOS
+========================================================= -->
+<dialog id="authDlg" aria-labelledby="authTitle">
+  <div class="dlg-head">
+    <h2 id="authTitle">Entrar</h2>
+    <button type="button" class="icon-btn" data-action="close" aria-label="Fechar"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="tabLogin" data-action="tab" data-tab="login">Entrar</button>
+    <button type="button" role="tab" id="tabRegister" data-action="tab" data-tab="register">Criar conta</button>
+  </div>
+  <p class="auth-msg" id="authMsg" hidden></p>
+
+  <form id="loginForm" novalidate>
+    <div class="field"><label for="l-email">E-mail</label><input id="l-email" type="email" autocomplete="email"></div>
+    <div class="field"><label for="l-pass">Senha</label><input id="l-pass" type="password" autocomplete="current-password"></div>
+    <span class="err" id="loginErr"></span>
+    <button class="btn btn-orange full" type="submit">Entrar</button>
+    <p class="switch">Ainda não tem conta? <button type="button" class="link-btn" data-action="tab" data-tab="register">Criar conta</button></p>
+  </form>
+
+  <form id="registerForm" novalidate hidden>
+    <div class="field"><label for="r-nome">Nome completo</label><input id="r-nome" type="text" autocomplete="name" maxlength="100"></div>
+    <div class="field"><label for="r-email">E-mail</label><input id="r-email" type="email" autocomplete="email"></div>
+    <div class="grid2">
+      <div class="field"><label for="r-pass">Senha <small>(mín. 8)</small></label><input id="r-pass" type="password" autocomplete="new-password"></div>
+      <div class="field"><label for="r-pass2">Confirmar senha</label><input id="r-pass2" type="password" autocomplete="new-password"></div>
+    </div>
+    <label class="radio"><input type="checkbox" id="r-termos"><span>Concordo em fornecer meus dados para uso na plataforma Central INOVA.</span></label>
+    <span class="err" id="registerErr"></span>
+    <button class="btn btn-orange full" type="submit">Criar conta</button>
+    <p class="switch">Já tem conta? <button type="button" class="link-btn" data-action="tab" data-tab="login">Entrar</button></p>
+  </form>
+</dialog>
+
+<dialog id="orgDlg" aria-labelledby="orgDlgTitle">
+  <div class="dlg-head">
+    <h2 id="orgDlgTitle">Organização</h2>
+    <button type="button" class="icon-btn" data-action="close" aria-label="Fechar"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+  <div id="orgDlgBody"></div>
+</dialog>
+
+<dialog id="helpDlg" aria-labelledby="helpTitle">
+  <div class="dlg-head">
+    <h2 id="helpTitle">Dicas para preencher</h2>
+    <button type="button" class="icon-btn" data-action="close" aria-label="Fechar"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="help-body">
+    <h3>Descrição institucional</h3>
+    <p>Em 3 a 5 frases: o que a organização faz, há quanto tempo atua, quem atende e qual é o diferencial. <em>Ex.: “Empresa de tecnologia fundada em 2015 que desenvolve sistemas de gestão para indústrias do Polo de Camaçari.”</em></p>
+    <h3>Competências e tecnologias</h3>
+    <p>Liste o que vocês sabem fazer, separando por vírgula. Use termos que outras organizações procurariam: “automação”, “análise de dados”, “capacitação técnica”.</p>
+    <h3>Recursos para colaboração</h3>
+    <p>O que pode ser compartilhado: laboratórios, equipamentos, equipe, espaço, rede de contatos, programas de formação.</p>
+    <h3>Demandas atuais</h3>
+    <p>O que vocês procuram: parceiros de pesquisa, financiamento, mentoria, fornecedores, talentos, clientes-piloto.</p>
+    <h3>Autorização</h3>
+    <p>Somente os dados autorizados e aprovados pela equipe são publicados. Se não autorizar, a organização fica salva na sua conta, mas não aparece no mapa.</p>
+  </div>
+</dialog>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
