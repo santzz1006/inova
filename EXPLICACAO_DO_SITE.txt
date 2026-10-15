@@ -1,0 +1,328 @@
+================================================================================
+                    CAMAÇARI INOVA — GUIA COMPLETO DO SISTEMA
+          Explicação Detalhada do Funcionamento, Ideia Central e Ferramentas
+================================================================================
+
+Data de Atualização: Outubro de 2026
+Plataforma: Camaçari INOVA (Central de Inovação e Conexões)
+Repositório Oficial: https://github.com/santzz1006/inova.git
+
+
+================================================================================
+ÍNDICE
+================================================================================
+1. Ideia Central e Propósito da Plataforma
+2. Tecnologias e Arquitetura do Sistema
+3. As Duas Áreas do Site (Página Pública x Área Logada)
+4. Detalhamento de Cada Ferramenta e Funcionalidade
+   4.1. Mapa Interativo do Ecossistema (Multi-instâncias)
+   4.2. Diagnóstico de Maturidade de Inovação (Questionário Inteligente)
+   4.3. Cadastro de Organizações em 4 Etapas (Formulário Inteligente)
+   4.4. Sistema de Autenticação e Segurança (Criptografia no Navegador)
+   4.5. Painel de Controle (Dashboard do Usuário com KPIs)
+   4.6. Módulo "Minhas Organizações" (Gestão de Cadastros)
+   4.7. Módulo de Moderação (Painel Administrativo)
+   4.8. Perfil de Usuário, Segurança e Privacidade (LGPD)
+   4.9. Temas Visuais (Modo Escuro / Claro) e Menu Retrátil
+5. Ciclo de Vida de uma Organização na Plataforma
+6. Guia Rápido de Uso para o Usuário e para o Administrador
+7. Estrutura de Arquivos do Projeto
+
+
+================================================================================
+1. IDEIA CENTRAL E PROPÓSITO DA PLATAFORMA
+================================================================================
+A plataforma "Camaçari INOVA" foi idealizada como um ecossistema digital aberto e 
+colaborativo para Camaçari e toda a Região Metropolitana de Salvador (RMS).
+
+O grande objetivo é resolver um problema comum em polos industriais e tecnológicos:
+a falta de visibilidade sobre o que cada instituição faz, quais tecnologias domina,
+quais recursos possui para compartilhar e quais são suas reais necessidades.
+
+A plataforma atua em 4 pilares estratégicos:
+1. MAPEAR: Localizar geograficamente e catalogar empresas, indústrias, startups,
+   universidades, órgãos públicos, hubs e associações que movimentam o território.
+2. CONECTAR: Aproximar atores complementares. Quem tem uma demanda encontra quem
+   tem a competência ou a tecnologia necessária para resolvê-la.
+3. INOVAR: Estimular parcerias de inovação aberta, compartilhamento de laboratórios,
+   aceleração de soluções e projetos de pesquisa aplicada.
+4. FORTALECER: Fornecer dados estruturados e indicadores de maturidade para que 
+   lideranças e gestores possam impulsionar o desenvolvimento econômico local.
+
+Lema do projeto:
+"Transformando informações em conexões e conexões em oportunidades."
+
+
+================================================================================
+2. TECNOLOGIAS E ARQUITETURA DO SISTEMA
+================================================================================
+O Camaçari INOVA foi construído como uma Single Page Application (SPA) moderna,
+leve e extremamente rápida, sem depender de frameworks pesados:
+
+- HTML5 Semântico: Estrutura acessível com tags nativas modernas (<dialog>,
+  <fieldset>, <section>, sprites vetoriais SVG, sem dependência de modais externos).
+- CSS3 Puro (Vanilla CSS): Variáveis nativas (Custom Properties), suporte fluido a
+  Modo Claro e Modo Escuro, design Glassmorphism (efeito vidro fosco) e família 
+  tipográfica premium Alpino (Black, Bold, Medium, Regular, Light, Thin e Variable).
+- JavaScript (ES6+): Código limpo, modular e desacoplado, sem necessidade de build
+  ou transpilação (roda diretamente no navegador).
+- Leaflet + OpenStreetMap: Mapas interativos sem limites de consumo e sem necessidade 
+  de chaves de API pagas da Google.
+- ViaCEP API: Serviço automático de busca de CEP gratuito para preencher rua, bairro 
+  e cidade instantaneamente.
+- Nominatim API (OpenStreetMap): Geocodificação inteligente que converte o endereço 
+  cadastrado em latitude e longitude exatas para gerar o marcador no mapa.
+- Lucide Icons: Coleção moderna de ícones SVG vetoriais com alta legibilidade.
+- Web Crypto API (SHA-256): Criptografia de senhas com sal (salt) único por usuário,
+  garantindo segurança de alto nível diretamente na máquina cliente.
+- LocalStorage (Web Storage): Persistência de dados das organizações, perfis,
+  diagnósticos e configurações de interface.
+
+
+================================================================================
+3. AS DUAS ÁREAS DO SITE (PÁGINA PÚBLICA X ÁREA LOGADA)
+================================================================================
+A plataforma funciona em dois modos perfeitamente integrados:
+
+A) SITE PÚBLICO (LANDING PAGE):
+   Aberto a qualquer visitante da internet. Apresenta o projeto, estatísticas em
+   tempo real do ecossistema, mapa exploratório público (com visualização resumida
+   das instituições aprovadas), o questionário de diagnóstico interativo e botões de 
+   cadastro/login.
+
+B) ÁREA LOGADA (PAINEL DO APLICATIVO - APP):
+   Acessível aos usuários cadastrados através de rotas internas (hash routing: 
+   #/app/dashboard, #/app/mapa, #/app/nova, #/app/minhas, etc.).
+   Apresenta menu lateral moderno (retrátil), painel com KPIs personalizados, mapa 
+   embutido no próprio dashboard, mapa em tela cheia com visualização avançada,
+   ferramenta de cadastro/edição de organizações, ambiente de moderação para 
+   administradores e painel de privacidade.
+
+
+================================================================================
+4. DETALHAMENTO DE CADA FERRAMENTA E FUNCIONALIDADE
+================================================================================
+
+--------------------------------------------------------------------------------
+4.1. MAPA INTERATIVO DO ECOSSISTEMA (MULTI-INSTÂNCIAS)
+--------------------------------------------------------------------------------
+O mapa é o coração visual da plataforma. Ele existe em três pontos estratégicos:
+1. Na página inicial pública (para visitantes).
+2. Diretamente no Painel Geral da área logada (para consultas rápidas do usuário).
+3. Na seção "Mapa do Ecossistema" em tela cheia (para navegação aprofundada).
+
+Recursos do Mapa:
+- Categorização por Cores e Tipos de Atores:
+  * Empresa: Laranja (#FF5500)
+  * Startup: Magenta (#C2185B)
+  * Ensino e pesquisa: Verde (#6FB000)
+  * Governo / Poder público: Amarelo escuro (#E39A00)
+  * Associação / Sindicato: Azul marinho (#06006B)
+  * ONG / Terceiro setor: Verde-azulado (#00897B)
+  * Fomento / Investidor: Roxo (#6A1B9A)
+  * Hub / Incubadora / Aceleradora: Azul ciano (#0277BD)
+  * Outro: Cinza azulado (#607D8B)
+
+- Filtros Rápidos (Chips): Botões acima do mapa permitem filtrar instantaneamente 
+  as instituições de determinado tipo ou visualizar "Todos".
+- Campo de Busca Inteligente: Campo de pesquisa com mecanismo de debounce (200ms) 
+  que filtra em tempo real tanto pelo nome da instituição quanto por palavras-chave 
+  de competências (ex: "química verde", "inteligência artificial", "automação").
+- Lista Lateral Sincronizada: Ao lado do mapa, uma listagem exibe as organizações 
+  visíveis. Clicar em um item da lista faz a câmera voar suavemente (efeito flyTo) 
+  até a localização exata e abre o balão de informações.
+- Marcadores Personalizados (Pins com pulso): Marcadores CSS estilizados na cor 
+  exata da vertical da organização.
+- Ficha Técnica da Organização: Ao clicar em "Ver detalhes", abre uma janela modal 
+  completa com:
+  * Nome institucional e vertical de atuação
+  * Descrição das atividades
+  * Competências e tecnologias disponíveis
+  * Recursos oferecidos para colaboração mútua
+  * Demandas atuais e necessidades de parceiros
+  * Endereço físico e cidades de atuação na RMS
+  * Site oficial e E-mail institucional de contato (visíveis apenas para usuários logados).
+
+--------------------------------------------------------------------------------
+4.2. DIAGNÓSTICO DE MATURIDADE DE INOVAÇÃO (QUESTIONÁRIO INTELIGENTE)
+--------------------------------------------------------------------------------
+Uma ferramenta interativa para empresas e instituições avaliarem o seu grau de
+preparo para inovar. Disponível tanto na página inicial quanto dentro da conta logada.
+
+Como funciona a lógica de avaliação:
+- 8 perguntas de múltipla escolha com opções ponderadas de 0 a 3 pontos.
+- As perguntas são distribuídas em 4 eixos fundamentais:
+  1. Estratégia e liderança: Presença da inovação no planejamento e previsão de orçamento.
+  2. Pessoas e cultura: Participação da equipe em ideias e programas de capacitação.
+  3. Processos e projetos: Métodos de teste (protótipos/pilotos) e acompanhamento de métricas.
+  4. Parcerias e ecossistema: Frequência de cooperação e conhecimento dos atores da região.
+
+Cálculo e Apresentação do Resultado:
+- Pontuação Percentual Global (0% a 100%).
+- Anel Visual de Desempenho (Score Ring animado em SVG/CSS).
+- Enquadramento em 4 Níveis de Maturidade:
+  * Explorador (0% a 34%): Fase inicial, foco em criar base, hábitos e definir o 1º desafio.
+  * Experimentador (35% a 64%): Já realiza testes pontuais; momento de estruturar canais e métricas.
+  * Estruturado (65% a 84%): Processos definidos; foco em abrir projetos colaborativos com centros de P&D e startups.
+  * Referência (85% a 100%): Líder do território; incentivo para mentorar outras instituições e liderar grandes projetos.
+- Barras de Progresso por Dimensão: Exibe a pontuação específica de cada um dos 4 eixos.
+- Diagnóstico Crítico: Identifica automaticamente qual é o "Ponto de Atenção Prioritário" da organização.
+- Recomendações Práticas: Lista passos acionáveis para o próximo nível.
+- Salvamento e Migração Automática: Se o usuário responder como visitante, o resultado fica salvo no navegador. Quando ele cria uma conta ou entra, o diagnóstico é automaticamente vinculado ao seu perfil.
+
+--------------------------------------------------------------------------------
+4.3. CADASTRO DE ORGANIZAÇÕES EM 4 ETAPAS (FORMULÁRIO INTELIGENTE)
+--------------------------------------------------------------------------------
+O formulário de cadastro é estruturado em formato multi-step (passo a passo) para 
+não sobrecarregar o usuário e garantir qualidade dos dados.
+
+- Seção 1: Identificação Básica
+  * Nome da Organização (mínimo de 3 caracteres)
+  * Tipo de Ator (seleção do segmento no ecossistema)
+
+- Seção 2: Endereço e Área de Atuação
+  * Campo de CEP com máscara automática (00000-000)
+  * Integração ViaCEP: Ao digitar o 8º dígito, preenche automaticamente Rua, Bairro e Cidade sem recarregar a página
+  * Número do endereço (ou indicação S/N)
+  * Seleção múltipla de áreas de atuação: Checkboxes cobrindo Camaçari, Salvador, Lauro de Freitas, Simões Filho, Dias d'Ávila, Mata de São João, Pojuca, Catu, Candeias, Itaparica, Madre de Deus, São Sebastião do Passé e São Francisco do Conde
+  * Botões utilitários "Marcar todas" e "Limpar"
+
+- Seção 3: Conhecendo sua Organização
+  * Descrição Institucional (mínimo de 20 caracteres para garantir qualidade da informação)
+  * Competências e Tecnologias Disponíveis (termos separados por vírgula que alimentam o motor de busca)
+  * Recursos Disponíveis Para Colaboração (espaço físico, laboratórios, equipamentos, time técnico)
+  * Demandas / Necessidades Atuais (o que a organização busca: parceiros, investimentos, mentoria)
+
+- Seção 4: Contato, LGPD e Envio
+  * Site Institucional (validação de formato de URL)
+  * E-mail Institucional para Contato (validação de formato de e-mail)
+  * Autorização Explícita de Publicação: Escolha obrigatória entre "Sim, autorizo" ou "Não autorizo"
+  * Botão de Ajuda ("Ver dicas de preenchimento"): Modal com exemplos práticos de como descrever diferenciais, competências e demandas.
+
+Geocodificação Automática em Segundo Plano:
+No momento em que o formulário é enviado, o sistema consulta a API do OpenStreetMap 
+(Nominatim) utilizando a composição do endereço (Rua, Número, Bairro, Cidade, Bahia). 
+As coordenadas geográficas (lat e lng) são calculadas e gravadas automaticamente, 
+sem exigir que o usuário saiba coordenadas de GPS.
+
+--------------------------------------------------------------------------------
+4.4. SISTEMA DE AUTENTICAÇÃO E SEGURANÇA
+--------------------------------------------------------------------------------
+- Janela Modal de Acesso Rápido: Alternância simples entre as abas "Entrar" e "Criar conta".
+- Criptografia com Hash e Salt: As senhas dos usuários nunca são salvas em texto puro. O sistema gera um "salt" criptográfico exclusivo e aplica o algoritmo padrão SHA-256 via Web Crypto API.
+- Proteção de Rotas (requireAuth): Tentativas de acessar o painel, cadastrar organização ou ver contatos diretos de parceiros abrem a janela de autenticação e redirecionam o usuário de volta para onde ele estava após o login.
+- Feedback em Toast: Alertas animados no canto da tela informam sucesso, erros e confirmações.
+
+--------------------------------------------------------------------------------
+4.5. PAINEL DE CONTROLE (DASHBOARD DO USUÁRIO)
+--------------------------------------------------------------------------------
+Ao fazer login, o usuário é recebido em seu Painel Geral:
+- Saudação Inteligente baseada no horário atual (Bom dia / Boa tarde / Boa noite).
+- 4 Cartões de Indicadores (KPIs):
+  1. Total de organizações no mapa do ecossistema.
+  2. Número de organizações cadastradas por este usuário.
+  3. Organizações do usuário em fase de análise pela moderação.
+  4. Nível e percentual do Diagnóstico de Inovação.
+- Mapa Interativo Embutido: Permite consultar parceiros sem precisar sair da área administrativa.
+- Card de Resumo do Diagnóstico: Exibe o percentual alcançado ou convida para realizar a avaliação.
+- Bloco de Atividade Recente: Lista as organizações do usuário com atalhos de visualização e edição.
+
+--------------------------------------------------------------------------------
+4.6. MÓDULO "MINHAS ORGANIZAÇÕES"
+--------------------------------------------------------------------------------
+Área onde o usuário acompanha todas as iniciativas que submeteu:
+- Badges de Status em tempo real:
+  * "Em análise": Aguardando validação da equipe de moderação.
+  * "Aprovada e publicada": Aprovada e visível publicamente no mapa.
+  * "Não aprovada": Rejeitada pela moderação (exibe a mensagem com a justificativa dada pela equipe).
+  * "Não publicada (sem autorização)": Salva apenas no painel privado do usuário porque ele optou por não autorizar a divulgação pública.
+- Ações Disponíveis:
+  * Ver: Ficha técnica completa.
+  * Editar: Reabre o formulário multi-etapas preenchido para ajustes (o reenvio volta o status para nova análise).
+  * Excluir: Remove a organização definitivamente com confirmação de segurança.
+
+--------------------------------------------------------------------------------
+4.7. MÓDULO DE MODERAÇÃO (PAINEL ADMINISTRATIVO)
+--------------------------------------------------------------------------------
+Visível exclusivamente para usuários cadastrados com e-mails definidos como administradores
+(por padrão, configurado para "admin@camacariinova.com" ou contas com sinalizador admin: true):
+- Badge com Contador de Pendências no menu lateral.
+- Fila de Triagem de Submissões:
+  * Lista todas as organizações enviadas pela comunidade que estão com status "Em análise".
+  * Botão "Aprovar": Com 1 clique, altera o status para "Aprovada" e atualiza instantaneamente todos os mapas do sistema.
+  * Botão "Rejeitar": Abre caixa para digitar a justificativa do porquê o cadastro não foi aceito (ex.: informações incompletas, endereço inconsistente), notificando o autor.
+  * Botão "Excluir": Permite remover spams ou duplicidades.
+- Aba "Todas as Organizações Cadastradas": Visão geral de tudo o que existe no banco de dados.
+
+--------------------------------------------------------------------------------
+4.8. PERFIL DE USUÁRIO, SEGURANÇA E PRIVACIDADE (LGPD)
+--------------------------------------------------------------------------------
+Localizado em "Meu perfil", atende às boas práticas da Lei Geral de Proteção de Dados:
+- Dados Cadastrais: Atualização de Nome Completo, Telefone de contato e Cargo/Função.
+- Troca Segura de Senha: Exige a confirmação da senha atual antes de gravar a nova senha de 8+ dígitos.
+- Exportação de Dados (Portabilidade LGPD): Botão "Exportar meus dados" gera e baixa um arquivo `.json` estruturado contendo todos os dados cadastrais do usuário, suas organizações e o histórico do diagnóstico.
+- Exclusão da Conta (Direito ao Esquecimento): Permite ao usuário excluir permanentemente sua conta e todas as organizações que foram cadastradas por ela com um único clique consciente.
+
+--------------------------------------------------------------------------------
+4.9. TEMAS VISUAIS (MODO ESCURO / CLARO) E MENU RETRÁTIL
+--------------------------------------------------------------------------------
+- Modo Escuro (Dark Mode) Nativo:
+  * O site foi projetado com tema escuro de alto contraste e sofisticação por padrão, reduzindo o cansaço visual.
+  * Botões de alternância com ícones de sol e lua permitem trocar para o Modo Claro a qualquer momento.
+  * A preferência do visitante fica gravada e é mantida nas próximas visitas.
+- Menu Lateral Retrátil (Collapsible Sidebar):
+  * Um botão no topo da barra lateral permite colapsar o menu para modo minimalista (apenas ícones e tooltips), expandindo a área útil de visualização para mapas e tabelas.
+  * Responsivo para smartphones: em telas pequenas, o menu vira uma gaveta lateral deslizante acionada pelo ícone de hambúrguer.
+
+
+================================================================================
+5. CICLO DE VIDA DE UMA ORGANIZAÇÃO NA PLATAFORMA
+================================================================================
+1. Cadastro: O usuário logado preenche as 4 seções do formulário e autoriza a publicação.
+2. Geocodificação: O sistema obtém as coordenadas geográficas exatas pelo endereço via Nominatim.
+3. Status "Em Análise": A organização é salva e entra na fila da equipe de moderação.
+4. Triagem do Moderador:
+   - Se os dados estiverem consistentes -> O moderador clica em "Aprovar". O status muda para "Aprovada e publicada" e ela passa a figurar nos mapas públicos e do dashboard.
+   - Se faltar algo -> O moderador clica em "Rejeitar" e explica o motivo. O usuário vê a justificativa no seu painel e pode editar e reenviar.
+   - Se o usuário não tiver autorizado publicação -> A organização fica com status "Não publicada (privada)", permanecendo visível apenas no painel particular do autor.
+
+
+================================================================================
+6. GUIA RÁPIDO DE USO
+================================================================================
+
+COMO TESTAR A MODERAÇÃO (ADMINISTRADOR):
+1. Clique em "Criar conta" na barra superior ou no rodapé.
+2. Crie uma conta utilizando o e-mail: admin@camacariinova.com
+3. Automaticamente, a conta receberá a permissão de "Moderador".
+4. O menu lateral exibirá a aba "Moderação" com o contador de organizações pendentes.
+5. Cadastre uma nova organização em outra conta ou use as já cadastradas para testar a aprovação/rejeição.
+
+COMO NAVEGAR NO MAPA:
+1. Acesse a seção "Mapa" na página inicial ou "Mapa do Ecossistema" no menu logado.
+2. Clique nas cores dos chips superiores para filtrar por categorias (Empresa, Startup, etc.).
+3. Digite palavras como "Tecnologia", "Indústria" ou "Educação" na busca.
+4. Clique no card de uma organização na lista para vê-la no mapa.
+5. Clique em "Ver detalhes" para abrir a ficha institucional completa.
+
+COMO FAZER O DIAGNÓSTICO:
+1. Vá até a seção "Diagnóstico" no site ou no menu da sua conta.
+2. Responda com honestidade às 8 questões objetivas.
+3. Clique em "Ver resultado" para receber o gráfico das 4 dimensões e o plano de ação sugerido.
+
+
+================================================================================
+7. ESTRUTURA DE ARQUIVOS DO PROJETO
+================================================================================
+- index.html: Documento principal com a estrutura semântica da landing page, área logada e diálogos modais.
+- style.css: Folha de estilos completa com o design system, regras de dark/light mode, efeitos glassmorphism e responsividade.
+- script.js: Toda a lógica do aplicativo (SPA, Leaflet, autenticação, questionário de diagnóstico, formulários, moderação e LocalStorage).
+- logo.inova.svg: Identidade visual da marca Camaçari INOVA em formato vetorial de alta definição.
+- lucide.min.js: Biblioteca local de ícones vetoriais modernos.
+- fonts/: Família tipográfica completa Alpino nos formatos WOFF2, WOFF, TTF e EOT.
+- README.md: Apresentação do repositório no GitHub.
+
+================================================================================
+Documento gerado para servir de base completa de documentação, onboarding de novos 
+desenvolvedores, apresentações de projetos e suporte aos usuários da Central INOVA.
+================================================================================
