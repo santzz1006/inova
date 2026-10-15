@@ -6,10 +6,9 @@
   <title>Camaçari INOVA</title>
   <meta name="description" content="Plataforma que mapeia organizações, competências, recursos e demandas de Camaçari e região e promove conexões e parcerias de inovação.">
   <link rel="icon" href="logo.inova.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="style.css">
+  <script src="lucide.min.js"></script>
 </head>
 <body>
 
@@ -58,6 +57,10 @@
       <a href="#mapa">Mapa</a>
       <a href="#diagnostico">Diagnóstico</a>
       <a href="#cadastro">Cadastro</a>
+      <button type="button" class="theme-toggle-btn ghost" id="publicThemeToggleBtn" aria-label="Alternar tema" title="Alternar tema claro / escuro">
+        <i data-lucide="moon" class="icon-moon"></i>
+        <i data-lucide="sun" class="icon-sun"></i>
+      </button>
       <span class="nav-auth" id="navAuth"></span>
     </nav>
   </header>
@@ -186,44 +189,168 @@
 ========================================================= -->
 <div id="app" class="app" hidden>
   <aside class="side" id="side">
-    <a class="brand" href="#inicio"><img class="logo" src="logo.inova.svg" alt="Logo"><span>Camaçari<strong>INOVA</strong></span></a>
+    <div class="side-head">
+      <a class="brand" href="#inicio" title="Camaçari INOVA">
+        <img class="logo" src="logo.inova.svg" alt="Logo">
+        <span class="brand-text">Camaçari<strong>INOVA</strong></span>
+      </a>
+      <button type="button" class="side-collapse-btn" id="sideCollapseBtn" aria-label="Recolher menu lateral" title="Recolher / Expandir menu">
+        <i data-lucide="chevron-left" class="collapse-icon"></i>
+      </button>
+    </div>
     <nav aria-label="Menu da conta">
-      <button type="button" data-action="app" data-view="dashboard"><svg class="ic"><use href="#i-home"/></svg>Painel</button>
-      <button type="button" data-action="app" data-view="nova"><svg class="ic"><use href="#i-plus"/></svg>Nova organização</button>
-      <button type="button" data-action="app" data-view="minhas"><svg class="ic"><use href="#i-building"/></svg>Minhas organizações</button>
-      <button type="button" data-action="app" data-view="moderacao" id="navMod" hidden><svg class="ic"><use href="#i-shield"/></svg>Moderação <span class="count" id="modCount"></span></button>
-      <button type="button" data-action="app" data-view="perfil"><svg class="ic"><use href="#i-user"/></svg>Meu perfil</button>
+      <button type="button" data-action="app" data-view="dashboard" data-tooltip="Painel Geral">
+        <i data-lucide="layout-dashboard" class="ic"></i>
+        <span class="nav-label">Painel</span>
+      </button>
+      <button type="button" data-action="app" data-view="mapa" data-tooltip="Mapa do Ecossistema">
+        <i data-lucide="map-pin" class="ic"></i>
+        <span class="nav-label">Mapa do Ecossistema</span>
+      </button>
+      <button type="button" data-action="app" data-view="diagnostico" data-tooltip="Diagnóstico de Inovação">
+        <i data-lucide="bar-chart-3" class="ic"></i>
+        <span class="nav-label">Diagnóstico</span>
+      </button>
+      <button type="button" data-action="app" data-view="nova" data-tooltip="Nova Organização">
+        <i data-lucide="plus-circle" class="ic"></i>
+        <span class="nav-label">Nova organização</span>
+      </button>
+      <button type="button" data-action="app" data-view="minhas" data-tooltip="Minhas Organizações">
+        <i data-lucide="building" class="ic"></i>
+        <span class="nav-label">Minhas organizações</span>
+      </button>
+      <button type="button" data-action="app" data-view="moderacao" id="navMod" hidden data-tooltip="Moderação">
+        <i data-lucide="shield-check" class="ic"></i>
+        <span class="nav-label">Moderação</span>
+        <span class="count" id="modCount"></span>
+      </button>
+      <button type="button" data-action="app" data-view="perfil" data-tooltip="Meu Perfil">
+        <i data-lucide="user" class="ic"></i>
+        <span class="nav-label">Meu perfil</span>
+      </button>
       <hr>
-      <button type="button" data-action="site" data-target="mapa"><svg class="ic"><use href="#i-map"/></svg>Ver mapa</button>
-      <button type="button" data-action="site" data-target="diagnostico"><svg class="ic"><use href="#i-chart"/></svg>Diagnóstico</button>
-      <button type="button" data-action="site" data-target="inicio"><svg class="ic"><use href="#i-arrow" style="transform:scaleX(-1)"/></svg>Voltar ao site</button>
+      <button type="button" data-action="site" data-target="inicio" data-tooltip="Voltar ao Site">
+        <i data-lucide="globe" class="ic"></i>
+        <span class="nav-label">Voltar ao site</span>
+      </button>
     </nav>
     <div class="side-user">
       <div class="avatar" id="sideAvatar">?</div>
       <div class="who"><b id="sideName">Usuário</b><small id="sideRole">Conta</small></div>
-      <button type="button" class="icon-btn" data-action="logout" aria-label="Sair" title="Sair"><svg class="ic"><use href="#i-logout"/></svg></button>
+      <button type="button" class="icon-btn" data-action="logout" aria-label="Sair" title="Sair"><i data-lucide="log-out" class="ic"></i></button>
     </div>
   </aside>
   <div class="scrim" id="scrim" data-action="toggle-side"></div>
 
   <div class="main">
     <div class="topbar">
-      <button type="button" class="icon-btn only-mobile" data-action="toggle-side" aria-label="Abrir menu lateral"><svg class="ic"><use href="#i-menu"/></svg></button>
+      <button type="button" class="icon-btn only-mobile" data-action="toggle-side" aria-label="Abrir menu lateral"><i data-lucide="menu" class="ic"></i></button>
       <h1 id="viewTitle">Painel</h1>
+      <div class="topbar-actions">
+        <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Alternar tema" title="Alternar tema claro / escuro">
+          <i data-lucide="moon" class="icon-moon"></i>
+          <i data-lucide="sun" class="icon-sun"></i>
+          <span class="theme-text">Modo Escuro</span>
+        </button>
+      </div>
     </div>
 
     <!-- PAINEL -->
     <section data-view="dashboard">
-      <p class="muted" id="dashHello"></p>
-      <div class="kpis" id="kpis"></div>
-      <div class="quick">
-        <button class="btn btn-orange" type="button" data-action="app" data-view="nova"><svg class="ic"><use href="#i-plus"/></svg>Cadastrar organização</button>
-        <button class="btn btn-ghost-dark" type="button" data-action="site" data-target="diagnostico"><svg class="ic"><use href="#i-chart"/></svg>Fazer diagnóstico</button>
-        <button class="btn btn-ghost-dark" type="button" data-action="site" data-target="mapa"><svg class="ic"><use href="#i-map"/></svg>Ver mapa</button>
+      <div class="dash-welcome glass-panel">
+        <div class="dash-welcome-text">
+          <div class="panel-tag"><span class="badge-dot"></span> Área Logada</div>
+          <h2 id="dashGreetingTitle" class="h2 first">Bem-vindo(a) de volta!</h2>
+          <p class="muted" id="dashHello"></p>
+        </div>
+        <div class="quick">
+          <button class="btn btn-orange btn-sm" type="button" data-action="app" data-view="nova"><svg class="ic"><use href="#i-plus"/></svg>Cadastrar organização</button>
+          <button class="btn btn-ghost-dark btn-sm" type="button" data-action="app" data-view="diagnostico"><svg class="ic"><use href="#i-chart"/></svg>Fazer diagnóstico</button>
+          <button class="btn btn-ghost-dark btn-sm" type="button" data-action="app" data-view="mapa"><svg class="ic"><use href="#i-map"/></svg>Ver mapa completo</button>
+        </div>
       </div>
+
+      <div class="kpis" id="kpis"></div>
+
+      <!-- MAPA VISÍVEL DIRETAMENTE NO PAINEL DO USUÁRIO -->
+      <div class="panel map-panel-dash glass-panel">
+        <div class="panel-head-row">
+          <div>
+            <div class="panel-tag"><svg class="ic c-orange"><use href="#i-map"/></svg> Mapa no Painel</div>
+            <h2 class="h2 first">Mapa Interativo de Organizações</h2>
+            <p class="muted">Acesse a localização de organizações, competências e demandas diretamente do seu painel sem sair da sua conta.</p>
+          </div>
+          <div class="panel-head-actions">
+            <button class="btn btn-ghost-dark btn-sm" type="button" data-action="app" data-view="mapa">Ver tela cheia <svg class="ic"><use href="#i-arrow"/></svg></button>
+          </div>
+        </div>
+
+        <div class="toolbar toolbar-dash">
+          <label class="search search-dash">
+            <svg class="ic"><use href="#i-search"/></svg>
+            <input type="search" id="dashSearchInput" placeholder="Buscar no mapa por organização ou competência…" autocomplete="off">
+          </label>
+          <div class="filters filters-dash" id="dashChips" role="group" aria-label="Filtrar por tipo de ator"></div>
+        </div>
+
+        <div class="map-wrap map-wrap-dash">
+          <div id="dashMap" aria-label="Mapa do painel"></div>
+          <aside class="list list-dash" id="dashList" aria-live="polite"></aside>
+        </div>
+      </div>
+
       <div class="panel" id="dashDiag"></div>
       <h2 class="h2">Atividade recente</h2>
       <div class="rows" id="dashRecent"></div>
+    </section>
+
+    <!-- MAPA DO ECOSSISTEMA (VISÃO EXPANDIDA DENTRO DA CONTA) -->
+    <section data-view="mapa" hidden>
+      <div class="panel-head-row" style="margin-bottom:18px">
+        <div>
+          <div class="panel-tag"><svg class="ic c-orange"><use href="#i-map"/></svg> Ecossistema de Inovação</div>
+          <h2 class="h2 first">Mapeamento Territorial de Camaçari e Região</h2>
+          <p class="muted">Explore todas as organizações validadas, filtre por verticais de atuação e conecte-se com novos parceiros.</p>
+        </div>
+        <button class="btn btn-orange btn-sm" type="button" data-action="app" data-view="nova"><svg class="ic"><use href="#i-plus"/></svg>Cadastrar organização</button>
+      </div>
+
+      <div class="toolbar">
+        <label class="search">
+          <svg class="ic"><use href="#i-search"/></svg>
+          <input type="search" id="appMapSearchInput" placeholder="Buscar por organização ou competência…" autocomplete="off">
+        </label>
+        <div class="filters" id="appMapChips" role="group" aria-label="Filtrar por tipo de ator"></div>
+      </div>
+
+      <div class="map-wrap map-wrap-full">
+        <div id="appFullMap" aria-label="Mapa territorial completo"></div>
+        <aside class="list" id="appMapList" aria-live="polite"></aside>
+      </div>
+    </section>
+
+    <!-- DIAGNÓSTICO DE INOVAÇÃO (DIRETAMENTE DENTRO DA CONTA) -->
+    <section data-view="diagnostico" hidden>
+      <div class="panel glass-panel">
+        <div class="section-head" style="margin-bottom:24px">
+          <div class="panel-tag"><svg class="ic c-orange"><use href="#i-chart"/></svg> Avaliação Estratégica</div>
+          <h2 class="h2 first">Diagnóstico de Maturidade de Inovação</h2>
+          <p class="muted">Responda 8 perguntas rápidas para mapear sua maturidade nos 4 eixos (Estratégia, Pessoas, Processos e Parcerias) e receber orientações práticas.</p>
+        </div>
+
+        <div class="quiz" id="appQuiz">
+          <div class="quiz-top">
+            <span id="appQuizStep">Pergunta 1 de 8</span>
+            <div class="progress"><div id="appQuizBar"></div></div>
+          </div>
+          <div id="appQuizBody"></div>
+          <div class="quiz-nav">
+            <button class="btn btn-ghost-dark" id="appPrevBtn" type="button">Voltar</button>
+            <button class="btn btn-orange" id="appNextBtn" type="button" disabled>Próxima <svg class="ic"><use href="#i-arrow"/></svg></button>
+          </div>
+        </div>
+        <div class="result" id="appResult" hidden></div>
+      </div>
     </section>
 
     <!-- NOVA ORGANIZAÇÃO -->

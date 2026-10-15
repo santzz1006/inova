@@ -3,11 +3,8 @@
    - Mapa: Leaflet + OpenStreetMap (sem chave de API)
    - CEP: ViaCEP | Geocodificação: Nominatim (OpenStreetMap)
    - Login, organizações e perfil: salvos no navegador (localStorage)
-
-   ⚠️ IMPORTANTE: sem servidor, contas e organizações ficam SÓ no
-   navegador de cada pessoa. Serve para protótipo/demonstração.
-   Para uso real, troque as funções "DB" (seção 2) por chamadas a
-   um back-end (Firebase, Supabase, API própria...).
+   - Painel: Mapa integrado diretamente na área logada, diagnóstico
+     interno, KPIs interativos e navegação sem sair do app.
    ============================================================ */
 
 /* ---------- 1) CONFIGURAÇÃO ---------- */
@@ -41,13 +38,13 @@ const STATUS = {
   privada:   'Não publicada (sem autorização)'
 };
 
-/* Exemplos (troque pelos dados reais ou ponha SHOW_DEMO=false) */
+/* Exemplos (demonstração) */
 const DEMO = [
-  { id: 'demo1', nome: 'Organização Exemplo 1', tipo: 'empresa',    cidade: 'Camaçari', lat: -12.6996, lng: -38.3263, comp: 'Software, Dados', desc: 'Organização de exemplo.' },
-  { id: 'demo2', nome: 'Organização Exemplo 2', tipo: 'ensino',     cidade: 'Camaçari', lat: -12.6900, lng: -38.3100, comp: 'Pesquisa, Capacitação', desc: 'Organização de exemplo.' },
-  { id: 'demo3', nome: 'Organização Exemplo 3', tipo: 'governo',    cidade: 'Camaçari', lat: -12.6980, lng: -38.3380, comp: 'Fomento, Políticas públicas', desc: 'Organização de exemplo.' },
-  { id: 'demo4', nome: 'Organização Exemplo 4', tipo: 'startup',    cidade: 'Camaçari', lat: -12.7050, lng: -38.3190, comp: 'Aceleração, Mentoria', desc: 'Organização de exemplo.' },
-  { id: 'demo5', nome: 'Organização Exemplo 5', tipo: 'associacao', cidade: 'Dias d\'Ávila', lat: -12.6153, lng: -38.3000, comp: 'Representação, Eventos', desc: 'Organização de exemplo.' }
+  { id: 'demo1', nome: 'Polo Petroquímico Inovação', tipo: 'empresa',    cidade: 'Camaçari', lat: -12.6996, lng: -38.3263, comp: 'Química verde, Automação, ESG', desc: 'Indústria e centro de inovação com foco em sustentabilidade e eficiência energética.' },
+  { id: 'demo2', nome: 'Campus Tecnológico Integrado', tipo: 'ensino',     cidade: 'Camaçari', lat: -12.6900, lng: -38.3100, comp: 'Pesquisa aplicada, IA, Capacitação técnica', desc: 'Instituição de ensino e laboratórios avançados para projetos com a indústria.' },
+  { id: 'demo3', nome: 'Secretaria de Desenvolvimento Econômico', tipo: 'governo',    cidade: 'Camaçari', lat: -12.6980, lng: -38.3380, comp: 'Políticas públicas, Fomento, Atração de investimentos', desc: 'Poder público fomentando a inovação e parcerias empresariais na RMS.' },
+  { id: 'demo4', nome: 'Hub Camaçari Tech', tipo: 'hub',        cidade: 'Camaçari', lat: -12.7050, lng: -38.3190, comp: 'Aceleração, Mentoria, Espaço Maker', desc: 'Ambiente de inovação aberta, coworking e aceleração de soluções digitais e industriais.' },
+  { id: 'demo5', nome: 'BioInova Bahia', tipo: 'startup',    cidade: "Dias d'Ávila", lat: -12.6153, lng: -38.3000, comp: 'Biotecnologia, Resíduos, Novos materiais', desc: 'Startup desenvolvendo biomateriais a partir de subprodutos da cadeia produtiva local.' }
 ].map(o => ({ ...o, demo: true, autoriza: true, status: 'aprovada', areas: [o.cidade] }));
 
 /* ---------- 2) "BANCO DE DADOS" (localStorage) ---------- */
@@ -75,6 +72,12 @@ const fmtDate = iso => new Date(iso).toLocaleDateString('pt-BR');
 const tags = s => String(s || '').split(/[,;\n]/).map(x => x.trim()).filter(Boolean);
 const isUrl = v => { try { const u = new URL(v); return /^https?:$/.test(u.protocol); } catch { return false; } };
 
+function refreshIcons() {
+  if (window.lucide && typeof lucide.createIcons === 'function') {
+    lucide.createIcons();
+  }
+}
+
 function toast(msg, isErr) {
   const el = document.createElement('div');
   el.className = 'toast' + (isErr ? ' err' : '');
@@ -84,7 +87,7 @@ function toast(msg, isErr) {
 }
 
 async function hashPwd(p, salt) {
-  if (!(window.crypto && crypto.subtle)) return btoa(salt + p);   // fallback fraco (apenas protótipo)
+  if (!(window.crypto && crypto.subtle)) return btoa(salt + p);
   const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + p));
   return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
 }
@@ -92,7 +95,7 @@ async function hashPwd(p, salt) {
 /* ---------- 4) SESSÃO / AUTENTICAÇÃO ---------- */
 const user = () => DB.users().find(u => u.id === DB.session()) || null;
 const isAdmin = u => !!u && (u.admin || ADMIN_EMAILS.includes(u.email));
-let afterLogin = null;   // ação a executar depois do login
+let afterLogin = null;
 
 function openAuth(tab = 'login', msg = '') {
   setTab(tab);
@@ -123,6 +126,11 @@ $('#registerForm').addEventListener('submit', async e => {
   const salt = uid();
   const u = { id: uid(), nome, email, tel: '', cargo: '', salt, hash: await hashPwd(p1, salt), admin: ADMIN_EMAILS.includes(email), criado: new Date().toISOString() };
   users.push(u); DB.saveUsers(users); DB.setSession(u.id);
+
+  // Migra diagnóstico de convidado se houver
+  const guestDiag = LS.get('inova_diag_guest', null);
+  if (guestDiag) { LS.set('inova_diag_' + u.id, guestDiag); }
+
   e.target.reset();
   finishAuth(`Conta criada! Bem-vindo(a), ${nome.split(' ')[0]}.`);
 });
@@ -133,6 +141,13 @@ $('#loginForm').addEventListener('submit', async e => {
   const u = DB.users().find(x => x.email === email);
   if (!u || u.hash !== await hashPwd(pass, u.salt)) return err.textContent = 'E-mail ou senha incorretos.';
   DB.setSession(u.id);
+
+  // Migra diagnóstico de convidado se houver e o usuário ainda não tiver
+  const guestDiag = LS.get('inova_diag_guest', null);
+  if (guestDiag && !LS.get('inova_diag_' + u.id, null)) {
+    LS.set('inova_diag_' + u.id, guestDiag);
+  }
+
   e.target.reset();
   finishAuth(`Olá, ${u.nome.split(' ')[0]}!`);
 });
@@ -152,7 +167,6 @@ function logout() {
   toast('Você saiu da conta.');
 }
 
-/* Exige login para uma ação */
 function requireAuth(fn, msg) {
   if (user()) return fn();
   afterLogin = fn;
@@ -160,7 +174,15 @@ function requireAuth(fn, msg) {
 }
 
 /* ---------- 5) ROTAS (site x área logada) ---------- */
-const VIEWS = { dashboard: 'Painel', nova: 'Organização', minhas: 'Minhas organizações', moderacao: 'Moderação', perfil: 'Meu perfil' };
+const VIEWS = {
+  dashboard: 'Painel Geral',
+  mapa: 'Mapa do Ecossistema',
+  diagnostico: 'Diagnóstico de Inovação',
+  nova: 'Organização',
+  minhas: 'Minhas organizações',
+  moderacao: 'Moderação',
+  perfil: 'Meu perfil'
+};
 
 function goApp(view = 'dashboard') {
   requireAuth(() => { location.hash = '#/app/' + view; route(); },
@@ -183,22 +205,40 @@ addEventListener('hashchange', route);
 function showSite() {
   $('#app').hidden = true; $('#site').hidden = false;
   document.title = 'Camaçari INOVA';
-  setTimeout(() => map && map.invalidateSize(), 80);
-  refreshMap();
+  if (publicMapCtrl) {
+    publicMapCtrl.invalidate();
+    publicMapCtrl.refresh();
+  }
+  refreshIcons();
 }
+
 function showApp(view) {
   const u = user();
   $('#site').hidden = true; $('#app').hidden = false;
   $('#side').classList.remove('open'); $('#scrim').classList.remove('show');
   $$('[data-view]').forEach(s => s.hidden = s.dataset.view !== view);
   $$('#side nav button[data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === view));
-  $('#viewTitle').textContent = view === 'nova' && editingId ? 'Editar organização' : VIEWS[view];
-  document.title = VIEWS[view] + ' · Camaçari INOVA';
+  $('#viewTitle').textContent = view === 'nova' && editingId ? 'Editar organização' : (VIEWS[view] || 'Painel');
+  document.title = (VIEWS[view] || 'Painel') + ' · Camaçari INOVA';
   $('#navMod').hidden = !isAdmin(u);
   if (view === 'moderacao' && !isAdmin(u)) return goApp('dashboard');
   scrollTo(0, 0);
-  ({ dashboard: renderDashboard, nova: initForm, minhas: renderMine, moderacao: renderMod, perfil: renderProfile }[view])();
+
+  const viewHandlers = {
+    dashboard: renderDashboard,
+    mapa: renderAppMap,
+    diagnostico: renderAppDiag,
+    nova: initForm,
+    minhas: renderMine,
+    moderacao: renderMod,
+    perfil: renderProfile
+  };
+
+  if (viewHandlers[view]) {
+    viewHandlers[view]();
+  }
   renderAuthUI();
+  refreshIcons();
 }
 
 /* ---------- 6) HEADER / MENUS ---------- */
@@ -276,7 +316,6 @@ document.addEventListener('click', e => {
   const fn = actions[el.dataset.action];
   if (fn) { e.preventDefault(); fn(el); }
 });
-/* clicar fora do diálogo fecha */
 $$('dialog').forEach(d => d.addEventListener('mousedown', e => {
   if (e.target !== d) return;
   const r = d.getBoundingClientRect();
@@ -290,83 +329,124 @@ const publicOrgs = () => [
 ];
 const myOrgs = () => DB.orgs().filter(o => o.ownerId === DB.session());
 
-/* ---------- 9) MAPA (Leaflet) ---------- */
-const map = L.map('map', { scrollWheelZoom: false }).setView([-12.6996, -38.3263], 11);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19, attribution: '&copy; Colaboradores do <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-}).addTo(map);
-map.on('click', () => map.scrollWheelZoom.enable());
-map.getContainer().addEventListener('mouseleave', () => map.scrollWheelZoom.disable());
-map.on('popupopen', e => {
-  const b = e.popup.getElement().querySelector('[data-detail]');
-  if (b) b.onclick = () => openOrg(b.dataset.detail);
-});
-
-const layer = L.layerGroup().addTo(map);
-const markers = new Map();
-let filtroTipo = 'todos', termo = '', firstFit = true;
-
-const pinIcon = cor => L.divIcon({ className: '', html: `<div class="pin" style="--c:${cor}"></div>`, iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -28] });
+const pinIcon = cor => L.divIcon({ className: '', html: `<div class="pin" style="--c:${cor}"></div>`, iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -30] });
 
 function popupHTML(o) {
   const t = TIPOS[o.tipo] || TIPOS.outro;
   const c = tags(o.comp).slice(0, 4).join(' · ');
   return `<b>${esc(o.nome)}</b><br><small>${esc(t.nome)} · ${esc(o.cidade)}</small>
-    ${c ? `<p style="margin-top:6px;font-size:.88rem">${esc(c)}</p>` : ''}
+    ${c ? `<p style="margin-top:6px;font-size:.88rem;color:#555">${esc(c)}</p>` : ''}
     <button type="button" class="pop-btn" data-detail="${esc(o.id)}">Ver detalhes</button>`;
 }
 
-function filtrar() {
-  const t = termo.trim().toLowerCase();
-  return publicOrgs().filter(o =>
-    (filtroTipo === 'todos' || o.tipo === filtroTipo) &&
-    (!t || o.nome.toLowerCase().includes(t) || (o.comp || '').toLowerCase().includes(t))
-  );
-}
+/* ---------- 9) GERENCIADOR DE MAPAS (LEAFLET MULTI-INSTÂNCIA) ---------- */
+function initMapComponent({ mapId, listId, searchId, chipsId }) {
+  const container = document.getElementById(mapId);
+  if (!container) return null;
 
-function refreshMap() {
-  const lista = filtrar();
-  layer.clearLayers(); markers.clear();
-  lista.forEach(o => {
-    const m = L.marker([o.lat, o.lng], { icon: pinIcon((TIPOS[o.tipo] || TIPOS.outro).cor), title: o.nome }).bindPopup(popupHTML(o));
-    m.on('click', () => marcarItem(o.id));
-    m.addTo(layer); markers.set(o.id, m);
+  const m = L.map(mapId, { scrollWheelZoom: false }).setView([-12.6996, -38.3263], 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '&copy; Colaboradores do <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(m);
+
+  m.on('click', () => m.scrollWheelZoom.enable());
+  container.addEventListener('mouseleave', () => m.scrollWheelZoom.disable());
+  m.on('popupopen', e => {
+    const b = e.popup.getElement().querySelector('[data-detail]');
+    if (b) b.onclick = () => openOrg(b.dataset.detail);
   });
-  if (lista.length) map.fitBounds(L.latLngBounds(lista.map(o => [o.lat, o.lng])).pad(.3), { maxZoom: 13, animate: !firstFit });
-  firstFit = false;
 
-  $('#list').innerHTML = lista.length
-    ? lista.map(o => `<button class="item" type="button" data-id="${esc(o.id)}" style="--c:${(TIPOS[o.tipo] || TIPOS.outro).cor}"><b>${esc(o.nome)}</b><small>${esc((TIPOS[o.tipo] || TIPOS.outro).nome)} · ${esc(o.cidade)}</small></button>`).join('')
-    : '<p class="empty">Nenhuma organização encontrada. Tente outro filtro ou cadastre a sua!</p>';
+  const layer = L.layerGroup().addTo(m);
+  const markers = new Map();
+  let filtroTipo = 'todos', termo = '', firstFit = true;
 
-  const all = publicOrgs();
-  const set = new Set(all.flatMap(o => tags(o.comp).map(x => x.toLowerCase())));
-  [['statOrgs', all.length], ['statTipos', new Set(all.map(o => o.tipo)).size], ['statComp', set.size]]
-    .forEach(([id, v]) => countUp($('#' + id), v));
+  const chipsBox = document.getElementById(chipsId);
+  if (chipsBox) {
+    chipsBox.innerHTML = `<button type="button" class="on" data-t="todos">Todos</button>` +
+      Object.entries(TIPOS).map(([k, v]) => `<button type="button" data-t="${k}" style="--c:${v.cor}"><i></i>${v.nome}</button>`).join('');
+    chipsBox.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      chipsBox.querySelectorAll('button').forEach(c => c.classList.toggle('on', c === b));
+      filtroTipo = b.dataset.t; refresh();
+    });
+  }
+
+  const searchEl = document.getElementById(searchId);
+  let deb;
+  if (searchEl) {
+    searchEl.addEventListener('input', e => {
+      clearTimeout(deb);
+      deb = setTimeout(() => { termo = e.target.value; refresh(); }, 200);
+    });
+  }
+
+  const listEl = document.getElementById(listId);
+  if (listEl) {
+    listEl.addEventListener('click', e => {
+      const b = e.target.closest('.item'); if (!b) return;
+      const o = publicOrgs().find(x => x.id === b.dataset.id);
+      if (!o) return;
+      const marker = markers.get(o.id);
+      m.flyTo([o.lat, o.lng], 15, { duration: .8 });
+      setTimeout(() => marker && marker.openPopup(), 850);
+      listEl.querySelectorAll('.item').forEach(i => i.classList.toggle('sel', i.dataset.id === o.id));
+      container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }
+
+  function refresh() {
+    const t = termo.trim().toLowerCase();
+    const lista = publicOrgs().filter(o =>
+      (filtroTipo === 'todos' || o.tipo === filtroTipo) &&
+      (!t || o.nome.toLowerCase().includes(t) || (o.comp || '').toLowerCase().includes(t))
+    );
+    layer.clearLayers();
+    markers.clear();
+    lista.forEach(o => {
+      const marker = L.marker([o.lat, o.lng], { icon: pinIcon((TIPOS[o.tipo] || TIPOS.outro).cor), title: o.nome }).bindPopup(popupHTML(o));
+      marker.on('click', () => {
+        if (listEl) listEl.querySelectorAll('.item').forEach(i => i.classList.toggle('sel', i.dataset.id === o.id));
+      });
+      marker.addTo(layer);
+      markers.set(o.id, marker);
+    });
+    if (lista.length) {
+      m.fitBounds(L.latLngBounds(lista.map(o => [o.lat, o.lng])).pad(.3), { maxZoom: 13, animate: !firstFit });
+    }
+    firstFit = false;
+
+    if (listEl) {
+      listEl.innerHTML = lista.length
+        ? lista.map(o => `<button class="item" type="button" data-id="${esc(o.id)}" style="--c:${(TIPOS[o.tipo] || TIPOS.outro).cor}"><b>${esc(o.nome)}</b><small>${esc((TIPOS[o.tipo] || TIPOS.outro).nome)} · ${esc(o.cidade)}</small></button>`).join('')
+        : '<p class="empty">Nenhuma organização encontrada com esse filtro.</p>';
+    }
+
+    if (mapId === 'map') {
+      const all = publicOrgs();
+      const set = new Set(all.flatMap(o => tags(o.comp).map(x => x.toLowerCase())));
+      [['statOrgs', all.length], ['statTipos', new Set(all.map(o => o.tipo)).size], ['statComp', set.size]]
+        .forEach(([id, v]) => { const el = document.getElementById(id); if (el) countUp(el, v); });
+    }
+  }
+
+  refresh();
+  return { map: m, refresh, invalidate: () => setTimeout(() => m.invalidateSize(), 100) };
 }
-function marcarItem(id) { $$('.item').forEach(i => i.classList.toggle('sel', i.dataset.id === id)); }
 
-$('#list').addEventListener('click', e => {
-  const b = e.target.closest('.item'); if (!b) return;
-  const o = publicOrgs().find(x => x.id === b.dataset.id), m = markers.get(o.id);
-  map.flyTo([o.lat, o.lng], 15, { duration: .8 });
-  setTimeout(() => m.openPopup(), 850);
-  marcarItem(o.id);
-  $('#map').scrollIntoView({ behavior: 'smooth', block: 'center' });
-});
+// Instâncias dos mapas
+let publicMapCtrl = null;
+let dashMapCtrl = null;
+let fullAppMapCtrl = null;
 
-$('#chips').innerHTML = `<button type="button" class="on" data-t="todos">Todos</button>` +
-  Object.entries(TIPOS).map(([k, v]) => `<button type="button" data-t="${k}" style="--c:${v.cor}"><i></i>${v.nome}</button>`).join('');
-$('#chips').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return;
-  $$('#chips button').forEach(c => c.classList.toggle('on', c === b));
-  filtroTipo = b.dataset.t; refreshMap();
-});
-let deb; $('#searchInput').addEventListener('input', e => { clearTimeout(deb); deb = setTimeout(() => { termo = e.target.value; refreshMap(); }, 200); });
+function refreshAllMaps() {
+  publicMapCtrl && publicMapCtrl.refresh();
+  dashMapCtrl && dashMapCtrl.refresh();
+  fullAppMapCtrl && fullAppMapCtrl.refresh();
+}
 
 /* ---------- 10) DETALHES DA ORGANIZAÇÃO (exige login) ---------- */
 function openOrg(id) {
-  requireAuth(() => showOrg(id), 'Para ver as informações da organização, entre na sua conta.');
+  requireAuth(() => showOrg(id), 'Para ver as informações completas da organização, entre na sua conta.');
 }
 function showOrg(id) {
   const o = [...DEMO, ...DB.orgs()].find(x => x.id === id);
@@ -387,7 +467,7 @@ function showOrg(id) {
     ${row('Área de atuação', esc((o.areas || []).join(', ')))}
     ${(dono || publico) ? row('Site', o.site ? `<a href="${esc(o.site)}" target="_blank" rel="noopener">${esc(o.site)}</a>` : '') : ''}
     ${(dono || publico) ? row('E-mail de contato', o.email ? `<a href="mailto:${esc(o.email)}">${esc(o.email)}</a>` : '') : ''}
-    ${o.demo ? '<div><dd class="muted">Organização de exemplo.</dd></div>' : ''}
+    ${o.demo ? '<div><dd class="muted">Organização de exemplo validada pelo ecossistema.</dd></div>' : ''}
   </dl>`;
   $('#orgDlg').showModal();
 }
@@ -443,7 +523,6 @@ $('#fNext').addEventListener('click', () => { if (validateStep(step)) showStep(s
 $('#fPrev').addEventListener('click', () => showStep(step - 1));
 form.addEventListener('input', e => { const n = e.target.name; if (n && RULES[n]) setErr(n, ''); });
 
-/* máscara + busca de CEP (ViaCEP) */
 $('#f-cep').addEventListener('input', e => {
   let v = e.target.value.replace(/\D/g, '').slice(0, 8);
   if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5);
@@ -461,8 +540,8 @@ async function buscaCep(cep) {
     ['rua', 'bairro', 'cidade'].forEach(n => setErr(n, ''));
     const c = j.localidade && [...$$('[name=areas]', form)].find(x => x.value === j.localidade);
     if (c) c.checked = true;
-    hint.textContent = 'Endereço preenchido. Confira os dados.';
-  } catch { hint.textContent = 'Não foi possível buscar o CEP. Preencha manualmente.'; }
+    hint.textContent = 'Endereço preenchido com sucesso.';
+  } catch { hint.textContent = 'Não foi possível buscar o CEP automaticamente.'; }
 }
 
 function initForm() {
@@ -486,7 +565,7 @@ async function geocode(d) {
     const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q));
     const j = await r.json();
     if (j[0]) return { lat: +j[0].lat, lng: +j[0].lon };
-  } catch (_) { /* usa o centro da cidade */ }
+  } catch (_) { }
   const c = CIDADES[d.cidade] || CIDADES['Camaçari'];
   return { lat: c[0] + (Math.random() - .5) * .02, lng: c[1] + (Math.random() - .5) * .02 };
 }
@@ -512,48 +591,126 @@ form.addEventListener('submit', async e => {
   }
   DB.saveOrgs(orgs);
   btn.disabled = false; btn.textContent = old;
-  toast(d.autoriza ? 'Organização enviada! Ela será analisada pela equipe antes de ser publicada.' : 'Organização salva. Como não houve autorização, ela não será publicada no mapa.');
+  toast(d.autoriza ? 'Organização enviada! Ela será analisada pela moderação.' : 'Organização salva no seu painel privado.');
   editingId = null;
+  refreshAllMaps();
   goApp('minhas');
 });
 
-/* ---------- 12) PAINEL / LISTAS ---------- */
+/* ---------- 12) PAINEL / DASHBOARD APRIMORADO ---------- */
 function orgRow(o, mode) {
   const t = TIPOS[o.tipo] || TIPOS.outro;
-  const dono = users => (DB.users().find(u => u.id === o.ownerId) || {}).nome || '—';
-  const acts = [`<button type="button" data-do="ver" data-id="${o.id}">${ic('eye')}Ver</button>`];
-  if (mode === 'mine') acts.push(`<button type="button" data-do="edit" data-id="${o.id}">${ic('edit')}Editar</button>`, `<button type="button" class="del" data-do="del" data-id="${o.id}">${ic('trash')}Excluir</button>`);
-  if (mode === 'mod') {
-    if (o.status !== 'aprovada' && o.autoriza) acts.push(`<button type="button" class="ok" data-do="aprovar" data-id="${o.id}">${ic('check')}Aprovar</button>`);
-    if (o.status !== 'rejeitada') acts.push(`<button type="button" class="del" data-do="rejeitar" data-id="${o.id}">${ic('x')}Rejeitar</button>`);
-    acts.push(`<button type="button" class="del" data-do="del" data-id="${o.id}">${ic('trash')}Excluir</button>`);
+  const dono = () => (DB.users().find(u => u.id === o.ownerId) || {}).nome || '—';
+  const acts = [`<button type="button" data-do="ver" data-id="${o.id}"><i data-lucide="eye" class="ic"></i><span>Ver</span></button>`];
+  if (mode === 'mine') {
+    acts.push(
+      `<button type="button" data-do="edit" data-id="${o.id}"><i data-lucide="edit-3" class="ic"></i><span>Editar</span></button>`,
+      `<button type="button" class="del" data-do="del" data-id="${o.id}"><i data-lucide="trash-2" class="ic"></i><span>Excluir</span></button>`
+    );
   }
-  return `<div class="row" style="--c:${t.cor}">
-    <div><h3>${esc(o.nome)}</h3>
-      <small>${esc(t.nome)} · ${esc(o.cidade)} · enviada em ${fmtDate(o.criado)}${mode !== 'mine' ? ' · por ' + esc(dono()) : ''}</small><br>
-      <span class="status st-${o.status}">${STATUS[o.status]}</span></div>
-    <div class="acts">${acts.join('')}</div></div>`;
+  if (mode === 'mod') {
+    if (o.status !== 'aprovada' && o.autoriza) {
+      acts.push(`<button type="button" class="ok" data-do="aprovar" data-id="${o.id}"><i data-lucide="check" class="ic"></i><span>Aprovar</span></button>`);
+    }
+    if (o.status !== 'rejeitada') {
+      acts.push(`<button type="button" class="del" data-do="rejeitar" data-id="${o.id}"><i data-lucide="x" class="ic"></i><span>Rejeitar</span></button>`);
+    }
+    acts.push(`<button type="button" class="del" data-do="del" data-id="${o.id}"><i data-lucide="trash-2" class="ic"></i><span>Excluir</span></button>`);
+  }
+  return `<div class="row">
+    <div class="row-info">
+      <div class="row-header-line">
+        <span class="actor-tag" style="--c:${t.cor}"><i></i>${esc(t.nome)}</span>
+        <span class="status st-${o.status}">${STATUS[o.status]}</span>
+      </div>
+      <h3 class="row-title">${esc(o.nome)}</h3>
+      <small class="row-meta">${esc(o.cidade)} · Enviada em ${fmtDate(o.criado)}${mode !== 'mine' ? ' · por ' + esc(dono()) : ''}</small>
+    </div>
+    <div class="acts">${acts.join('')}</div>
+  </div>`;
 }
 
 function renderDashboard() {
   const u = user(), mine = myOrgs();
-  $('#dashHello').textContent = `Olá, ${u.nome.split(' ')[0]}! Veja o resumo da sua atividade na Central INOVA.`;
-  const c = s => mine.filter(o => o.status === s).length;
-  $('#kpis').innerHTML = [
-    ['Organizações cadastradas', mine.length, 'var(--navy)'], ['Em análise', c('analise'), '#B26A00'],
-    ['Publicadas no mapa', c('aprovada'), '#2E7D32'], ['No mapa (total)', publicOrgs().length, 'var(--orange)']
-  ].map(([l, v, col]) => `<div class="kpi" style="--c:${col}"><b>${v}</b><span>${l}</span></div>`).join('');
+  const hour = new Date().getHours();
+  const saudacao = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
 
+  $('#dashGreetingTitle').textContent = `${saudacao}, ${u.nome.split(' ')[0]}!`;
+  $('#dashHello').textContent = `Veja as conexões ativas no território e gerencie suas iniciativas de inovação em Camaçari.`;
+
+  const c = s => mine.filter(o => o.status === s).length;
   const dg = LS.get('inova_diag_' + u.id, null);
+  const diagLabel = dg ? `${dg.pct}% · ${dg.nivel}` : 'Pendente';
+
+  const kpiCards = [
+    { label: 'Organizações no mapa', val: publicOrgs().length, icon: 'map-pin', badge: 'Ecossistema', color: 'orange' },
+    { label: 'Minhas organizações', val: mine.length, icon: 'building', badge: 'Cadastros', color: 'lime' },
+    { label: 'Em análise da equipe', val: c('analise'), icon: 'clock', badge: 'Pendentes', color: 'amber' },
+    { label: 'Maturidade de Inovação', val: diagLabel, icon: 'sparkles', badge: dg ? 'Avaliado' : 'Novo', color: 'emerald' }
+  ];
+
+  $('#kpis').innerHTML = kpiCards.map(k => `
+    <div class="kpi kpi-${k.color}">
+      <div class="kpi-top">
+        <span class="kpi-icon"><i data-lucide="${k.icon}"></i></span>
+        <span class="kpi-tag">${k.badge}</span>
+      </div>
+      <b class="kpi-val">${k.val}</b>
+      <span class="kpi-label">${k.label}</span>
+    </div>
+  `).join('');
+
+  // INICIALIZA / ATUALIZA O MAPA DIRETAMENTE NO PAINEL
+  if (!dashMapCtrl) {
+    dashMapCtrl = initMapComponent({
+      mapId: 'dashMap',
+      listId: 'dashList',
+      searchId: 'dashSearchInput',
+      chipsId: 'dashChips'
+    });
+  } else {
+    dashMapCtrl.refresh();
+  }
+  dashMapCtrl && dashMapCtrl.invalidate();
+
+  // WIDGET DE DIAGNÓSTICO DO PAINEL (COM ACESSO DIRETO SEM SAIR DO APP)
   $('#dashDiag').innerHTML = dg
-    ? `<h2 class="h2 first">Último diagnóstico de inovação</h2><p>Nível <strong>${esc(dg.nivel)}</strong> — pontuação ${dg.pct}% (feito em ${fmtDate(dg.data)}).</p>
-       <div class="quick" style="margin:14px 0 0"><button class="btn btn-ghost-dark btn-sm" type="button" data-action="site" data-target="diagnostico">Refazer diagnóstico</button></div>`
-    : `<h2 class="h2 first">Diagnóstico de inovação</h2><p class="muted">Você ainda não fez o diagnóstico. Leva menos de 2 minutos.</p>
-       <div class="quick" style="margin:14px 0 0"><button class="btn btn-orange btn-sm" type="button" data-action="site" data-target="diagnostico">Fazer agora</button></div>`;
+    ? `<div class="panel-head-row">
+         <div>
+           <div class="panel-tag"><i data-lucide="sparkles" class="ic c-orange"></i> Diagnóstico Concluído</div>
+           <h2 class="h2 first">Maturidade de Inovação: Nível ${esc(dg.nivel)}</h2>
+           <p class="muted">Pontuação geral: <strong>${dg.pct}%</strong> · Realizado em ${fmtDate(dg.data)}.</p>
+         </div>
+         <button class="btn btn-ghost-dark btn-sm" type="button" data-action="app" data-view="diagnostico">Ver diagnóstico completo <i data-lucide="arrow-right" class="ic"></i></button>
+       </div>`
+    : `<div class="panel-head-row">
+         <div>
+           <div class="panel-tag"><i data-lucide="sparkles" class="ic c-orange"></i> Diagnóstico Recomendado</div>
+           <h2 class="h2 first">Descubra a Maturidade da sua Organização</h2>
+           <p class="muted">Responda a 8 perguntas objetivas e descubra pontos de atenção e oportunidades no ecossistema.</p>
+         </div>
+         <button class="btn btn-orange btn-sm" type="button" data-action="app" data-view="diagnostico">Fazer diagnóstico agora <i data-lucide="arrow-right" class="ic"></i></button>
+       </div>`;
 
   const rec = [...mine].sort((a, b) => b.atualizado.localeCompare(a.atualizado)).slice(0, 3);
   $('#dashRecent').innerHTML = rec.length ? rec.map(o => orgRow(o, 'mine')).join('')
     : `<div class="empty-box">Você ainda não cadastrou nenhuma organização.<br><button class="btn btn-orange btn-sm" type="button" data-action="new-org">Cadastrar a primeira</button></div>`;
+
+  refreshIcons();
+}
+
+function renderAppMap() {
+  if (!fullAppMapCtrl) {
+    fullAppMapCtrl = initMapComponent({
+      mapId: 'appFullMap',
+      listId: 'appMapList',
+      searchId: 'appMapSearchInput',
+      chipsId: 'appMapChips'
+    });
+  } else {
+    fullAppMapCtrl.refresh();
+  }
+  fullAppMapCtrl && fullAppMapCtrl.invalidate();
 }
 
 function renderMine() {
@@ -570,7 +727,6 @@ function renderMod() {
   renderAuthUI();
 }
 
-/* botões das listas (ver / editar / excluir / aprovar / rejeitar) */
 $('#app').addEventListener('click', e => {
   const b = e.target.closest('[data-do]'); if (!b) return;
   const id = b.dataset.id, orgs = DB.orgs(), o = orgs.find(x => x.id === id);
@@ -580,13 +736,16 @@ $('#app').addEventListener('click', e => {
     case 'edit': editingId = id; location.hash = '#/app/nova'; route(); break;
     case 'del':
       if (!confirm(`Excluir "${o.nome}"? Esta ação não pode ser desfeita.`)) return;
-      DB.saveOrgs(orgs.filter(x => x.id !== id)); toast('Organização excluída.'); refresh(); break;
+      DB.saveOrgs(orgs.filter(x => x.id !== id)); toast('Organização excluída.');
+      refreshAllMaps(); refresh(); break;
     case 'aprovar':
-      o.status = 'aprovada'; o.motivo = ''; DB.saveOrgs(orgs); toast('Organização aprovada e publicada no mapa.'); refresh(); break;
+      o.status = 'aprovada'; o.motivo = ''; DB.saveOrgs(orgs); toast('Organização aprovada e publicada no mapa.');
+      refreshAllMaps(); refresh(); break;
     case 'rejeitar': {
       const m = prompt('Motivo da rejeição (será exibido ao responsável):', '');
       if (m === null) return;
-      o.status = 'rejeitada'; o.motivo = m.trim(); DB.saveOrgs(orgs); toast('Organização rejeitada.'); refresh(); break;
+      o.status = 'rejeitada'; o.motivo = m.trim(); DB.saveOrgs(orgs); toast('Organização rejeitada.');
+      refreshAllMaps(); refresh(); break;
     }
   }
 });
@@ -603,7 +762,7 @@ $('#profForm').addEventListener('submit', e => {
   if (nome.length < 3) return toast('Informe seu nome completo.', true);
   const users = DB.users(), u = users.find(x => x.id === DB.session());
   Object.assign(u, { nome, tel: $('#p-tel').value.trim(), cargo: $('#p-cargo').value.trim() });
-  DB.saveUsers(users); renderAuthUI(); toast('Perfil atualizado.');
+  DB.saveUsers(users); renderAuthUI(); toast('Perfil atualizado com sucesso.');
 });
 $('#pwdForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -613,13 +772,13 @@ $('#pwdForm').addEventListener('submit', async e => {
   if (n.length < 8) return toast('A nova senha deve ter pelo menos 8 caracteres.', true);
   if (n !== n2) return toast('As senhas novas não conferem.', true);
   u.salt = uid(); u.hash = await hashPwd(n, u.salt);
-  DB.saveUsers(users); e.target.reset(); toast('Senha atualizada.');
+  DB.saveUsers(users); e.target.reset(); toast('Senha atualizada com sucesso.');
 });
 function exportData() {
   const u = user(); const { hash, salt, ...safe } = u;
   const blob = new Blob([JSON.stringify({ usuario: safe, organizacoes: myOrgs(), diagnostico: LS.get('inova_diag_' + u.id, null) }, null, 2)], { type: 'application/json' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'meus-dados-camacari-inova.json'; a.click();
-  URL.revokeObjectURL(a.href); toast('Arquivo baixado.');
+  URL.revokeObjectURL(a.href); toast('Arquivo de dados baixado.');
 }
 function deleteAccount() {
   if (!confirm('Excluir sua conta e todas as organizações cadastradas por ela? Esta ação não pode ser desfeita.')) return;
@@ -630,79 +789,259 @@ function deleteAccount() {
   logout(); toast('Conta excluída.');
 }
 
-/* ---------- 14) QUESTIONÁRIO DE DIAGNÓSTICO ---------- */
-const DIMENSOES = { estrategia: 'Estratégia e liderança', pessoas: 'Pessoas e cultura', processos: 'Processos e projetos', parcerias: 'Parcerias e ecossistema' };
+/* ---------- 14) QUESTIONÁRIO DE DIAGNÓSTICO (CONTROLADOR UNIVERSAL) ---------- */
+const DIMENSOES = {
+  estrategia: 'Estratégia e liderança',
+  pessoas: 'Pessoas e cultura',
+  processos: 'Processos e projetos',
+  parcerias: 'Parcerias e ecossistema'
+};
 const PERGUNTAS = [
-  { d: 'estrategia', q: 'A inovação aparece no planejamento estratégico da sua organização?', o: ['Não aparece', 'Aparece em conversas informais', 'Há metas, mas sem acompanhamento', 'Há metas, orçamento e acompanhamento'] },
-  { d: 'estrategia', q: 'Existe orçamento ou tempo reservado para inovar?', o: ['Nenhum', 'Apenas de forma pontual', 'Sim, mas limitado', 'Sim, de forma recorrente'] },
-  { d: 'pessoas', q: 'Como a equipe participa da geração de ideias?', o: ['Não há espaço para isso', 'Ideias surgem, mas se perdem', 'Há canais para sugerir ideias', 'Há canais e as ideias são avaliadas e testadas'] },
-  { d: 'pessoas', q: 'A equipe recebe capacitação em inovação e tecnologia?', o: ['Nunca', 'Raramente', 'Algumas vezes ao ano', 'Existe um plano contínuo'] },
-  { d: 'processos', q: 'Como vocês testam novas soluções?', o: ['Não testamos', 'Testamos direto no cliente/operação', 'Fazemos pilotos informais', 'Temos método (protótipos, pilotos, métricas)'] },
-  { d: 'processos', q: 'Vocês medem os resultados dos projetos de inovação?', o: ['Não medimos', 'Medimos só o custo', 'Medimos alguns indicadores', 'Indicadores claros e revisão periódica'] },
-  { d: 'parcerias', q: 'Com que frequência fazem parcerias com outras organizações?', o: ['Nunca', 'Já fizemos uma vez', 'De vez em quando', 'Constantemente'] },
-  { d: 'parcerias', q: 'Vocês conhecem quem pode ajudar no ecossistema local (universidades, empresas, fomento)?', o: ['Não conhecemos ninguém', 'Conhecemos poucos', 'Conhecemos vários, sem contato ativo', 'Temos contato ativo e colaboração'] }
+  { d: 'estrategia', q: 'A inovação aparece no planejamento estratégico da sua organização?', o: ['Não aparece', 'Aparece em conversas informais', 'Há metas, mas sem acompanhamento', 'Há metas, orçamento e acompanhamento estruturado'] },
+  { d: 'estrategia', q: 'Existe orçamento ou tempo reservado para inovar?', o: ['Nenhum', 'Apenas de forma pontual', 'Sim, mas limitado', 'Sim, de forma recorrente e planejado'] },
+  { d: 'pessoas', q: 'Como a equipe participa da geração de ideias?', o: ['Não há espaço para isso', 'Ideias surgem, mas se perdem', 'Há canais para sugerir ideias', 'Há canais e as ideias são avaliadas e testadas com método'] },
+  { d: 'pessoas', q: 'A equipe recebe capacitação em inovação e tecnologia?', o: ['Nunca', 'Raramente', 'Algumas vezes ao ano', 'Existe um plano contínuo de capacitação'] },
+  { d: 'processos', q: 'Como vocês testam novas soluções?', o: ['Não testamos', 'Testamos direto no cliente/operação sem validação', 'Fazemos pilotos informais', 'Temos método estruturado (protótipos, pilotos, métricas)'] },
+  { d: 'processos', q: 'Vocês medem os resultados dos projetos de inovação?', o: ['Não medimos', 'Medimos só o custo', 'Medimos alguns indicadores', 'Indicadores claros com revisão periódica'] },
+  { d: 'parcerias', q: 'Com que frequência fazem parcerias com outras organizações?', o: ['Nunca', 'Já fizemos uma vez', 'De vez em quando', 'Constantemente colaboramos no ecossistema'] },
+  { d: 'parcerias', q: 'Vocês conhecem quem pode apoiar no ecossistema local (universidades, empresas, fomento)?', o: ['Não conhecemos ninguém', 'Conhecemos poucos atores', 'Conhecemos vários, mas sem contato ativo', 'Temos relacionamento ativo e projetos conjuntos'] }
 ];
 const NIVEIS = [
-  { min: 0,  nome: 'Explorador', txt: 'Sua organização está começando a jornada. O foco agora é criar base e hábito.', dicas: ['Defina 1 desafio claro para resolver com inovação.', 'Reserve um tempo mensal para testar ideias.', 'Cadastre sua organização e conheça quem já atua na região.'] },
-  { min: 35, nome: 'Experimentador', txt: 'Já existem iniciativas, mas ainda sem constância. É hora de estruturar.', dicas: ['Crie um canal simples para coletar e priorizar ideias.', 'Escolha 2 indicadores para acompanhar seus pilotos.', 'Busque no mapa organizações com competências complementares.'] },
-  { min: 65, nome: 'Estruturado', txt: 'Você já tem processos e cultura em desenvolvimento. Falta escalar e conectar.', dicas: ['Formalize orçamento e metas de inovação.', 'Abra projetos conjuntos com universidades ou startups.', 'Compartilhe seus casos para atrair parceiros.'] },
-  { min: 85, nome: 'Referência', txt: 'Sua organização é exemplo de inovação no território. Hora de liderar conexões.', dicas: ['Mentore organizações em estágios iniciais.', 'Lidere projetos colaborativos no ecossistema.', 'Mantenha seus dados atualizados no mapa.'] }
+  { min: 0,  nome: 'Explorador', txt: 'Sua organização está começando a jornada. O foco agora é criar base e hábito.', dicas: ['Defina 1 desafio claro para resolver com inovação.', 'Reserve um tempo mensal para testar ideias com a equipe.', 'Cadastre sua organização e conheça quem já atua na região.'] },
+  { min: 35, nome: 'Experimentador', txt: 'Já existem iniciativas, mas ainda sem constância. É hora de estruturar.', dicas: ['Crie um canal simples para coletar e priorizar ideias.', 'Escolha 2 indicadores objetivos para acompanhar seus pilotos.', 'Busque no mapa organizações com competências complementares.'] },
+  { min: 65, nome: 'Estruturado', txt: 'Você já tem processos e cultura em desenvolvimento. O próximo passo é escalar conexões.', dicas: ['Formalize orçamento e metas claras de inovação.', 'Abra projetos conjuntos com universidades, centros de P&D ou startups.', 'Compartilhe seus casos de sucesso para atrair novos parceiros.'] },
+  { min: 85, nome: 'Referência', txt: 'Sua organização é líder em inovação no território. Momento de acelerar parcerias.', dicas: ['Mentore e apoie organizações em estágios iniciais.', 'Lidere projetos colaborativos de alto impacto no ecossistema.', 'Mantenha seus dados e ofertas de colaboração atualizados no mapa.'] }
 ];
-const quiz = { i: 0, resp: Array(PERGUNTAS.length).fill(null) };
-const qBody = $('#quizBody'), nextBtn = $('#nextBtn'), prevBtn = $('#prevBtn');
 
-function renderPergunta() {
-  const p = PERGUNTAS[quiz.i], sel = quiz.resp[quiz.i];
-  $('#quizStep').textContent = `Pergunta ${quiz.i + 1} de ${PERGUNTAS.length}`;
-  $('#quizBar').style.width = ((quiz.i + 1) / PERGUNTAS.length * 100) + '%';
-  qBody.innerHTML = `<div class="fade"><h3 class="q-title">${esc(p.q)}</h3><div class="opts" role="radiogroup">` +
-    p.o.map((t, k) => `<button type="button" class="opt ${sel === k ? 'sel' : ''}" role="radio" aria-checked="${sel === k}" data-k="${k}"><span class="dot"><svg><use href="#i-check"/></svg></span>${esc(t)}</button>`).join('') + `</div></div>`;
-  prevBtn.style.visibility = quiz.i ? 'visible' : 'hidden';
-  nextBtn.disabled = sel === null;
-  nextBtn.innerHTML = (quiz.i === PERGUNTAS.length - 1 ? 'Ver resultado' : 'Próxima') + ' ' + ic('arrow');
-}
-qBody.addEventListener('click', e => {
-  const b = e.target.closest('.opt'); if (!b) return;
-  quiz.resp[quiz.i] = +b.dataset.k;
-  $$('.opt', qBody).forEach(o => { const on = o === b; o.classList.toggle('sel', on); o.setAttribute('aria-checked', on); });
-  nextBtn.disabled = false;
-});
-nextBtn.addEventListener('click', () => { quiz.i < PERGUNTAS.length - 1 ? (quiz.i++, renderPergunta()) : mostrarResultado(); });
-prevBtn.addEventListener('click', () => { if (quiz.i) { quiz.i--; renderPergunta(); } });
+function createQuizController({ stepId, barId, bodyId, prevId, nextId, quizBoxId, resultBoxId, isApp = false }) {
+  let i = 0;
+  let resp = Array(PERGUNTAS.length).fill(null);
 
-function mostrarResultado() {
-  const dim = {}, cnt = {};
-  PERGUNTAS.forEach((p, i) => { dim[p.d] = (dim[p.d] || 0) + quiz.resp[i]; cnt[p.d] = (cnt[p.d] || 0) + 1; });
-  const total = quiz.resp.reduce((a, b) => a + b, 0), pct = Math.round(total / (PERGUNTAS.length * 3) * 100);
-  const nivel = [...NIVEIS].reverse().find(n => pct >= n.min);
-  const menor = Object.keys(dim).sort((a, b) => dim[a] / cnt[a] - dim[b] / cnt[b])[0];
-  $('#quiz').hidden = true;
-  const r = $('#result'); r.hidden = false;
-  r.innerHTML = `
-    <div class="score-ring" id="ring"><span>${pct}%</span></div>
-    <p class="eyebrow">Seu nível</p><h3>${nivel.nome}</h3><p>${nivel.txt}</p>
-    <div class="bars">${Object.keys(DIMENSOES).map(k => { const v = Math.round(dim[k] / (cnt[k] * 3) * 100);
-      return `<div class="bar-row"><small><span>${DIMENSOES[k]}</span><span>${v}%</span></small><div class="bar"><div data-w="${v}"></div></div></div>`; }).join('')}</div>
-    <p><strong>Ponto de atenção:</strong> ${DIMENSOES[menor]}.</p>
-    <p style="margin-top:14px"><strong>Próximos passos:</strong></p>
-    <ul>${nivel.dicas.map(d => `<li>${d}</li>`).join('')}</ul>
-    <div class="actions">
-      <a class="btn btn-lime" href="#mapa">Buscar parceiros no mapa</a>
-      <button class="btn btn-ghost" type="button" data-action="new-org">Cadastrar organização</button>
-      <button class="btn btn-ghost" id="againBtn" type="button">Refazer</button>
-    </div>`;
-  requestAnimationFrame(() => { $('#ring').style.setProperty('--p', pct); $$('.bar div', r).forEach(b => b.style.width = b.dataset.w + '%'); });
-  r.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  $('#againBtn').addEventListener('click', () => {
-    quiz.i = 0; quiz.resp.fill(null); r.hidden = true; $('#quiz').hidden = false; renderPergunta();
-    $('#diagnostico').scrollIntoView({ behavior: 'smooth' });
+  const stepEl = $('#' + stepId);
+  const barEl = $('#' + barId);
+  const bodyEl = $('#' + bodyId);
+  const prevBtn = $('#' + prevId);
+  const nextBtn = $('#' + nextId);
+  const quizBox = $('#' + quizBoxId);
+  const resultBox = $('#' + resultBoxId);
+
+  if (!bodyEl) return null;
+
+  function renderPergunta() {
+    const p = PERGUNTAS[i], sel = resp[i];
+    stepEl.textContent = `Pergunta ${i + 1} de ${PERGUNTAS.length}`;
+    barEl.style.width = ((i + 1) / PERGUNTAS.length * 100) + '%';
+    bodyEl.innerHTML = `<div class="fade"><h3 class="q-title">${esc(p.q)}</h3><div class="opts" role="radiogroup">` +
+      p.o.map((t, k) => `<button type="button" class="opt ${sel === k ? 'sel' : ''}" role="radio" aria-checked="${sel === k}" data-k="${k}"><span class="dot"><svg><use href="#i-check"/></svg></span>${esc(t)}</button>`).join('') + `</div></div>`;
+    prevBtn.style.visibility = i ? 'visible' : 'hidden';
+    nextBtn.disabled = sel === null;
+    nextBtn.innerHTML = (i === PERGUNTAS.length - 1 ? 'Ver resultado' : 'Próxima') + ' ' + ic('arrow');
+  }
+
+  bodyEl.addEventListener('click', e => {
+    const b = e.target.closest('.opt'); if (!b) return;
+    resp[i] = +b.dataset.k;
+    bodyEl.querySelectorAll('.opt').forEach(o => { const on = o === b; o.classList.toggle('sel', on); o.setAttribute('aria-checked', on); });
+    nextBtn.disabled = false;
   });
-  const u = user();
-  LS.set('inova_diag_' + (u ? u.id : 'guest'), { pct, nivel: nivel.nome, data: new Date().toISOString() });
+
+  nextBtn.addEventListener('click', () => {
+    i < PERGUNTAS.length - 1 ? (i++, renderPergunta()) : mostrarResultado();
+  });
+  prevBtn.addEventListener('click', () => {
+    if (i) { i--; renderPergunta(); }
+  });
+
+  function reset() {
+    i = 0;
+    resp.fill(null);
+    quizBox.hidden = false;
+    resultBox.hidden = true;
+    renderPergunta();
+  }
+
+  function mostrarResultado() {
+    const dim = {}, cnt = {};
+    PERGUNTAS.forEach((p, idx) => { dim[p.d] = (dim[p.d] || 0) + resp[idx]; cnt[p.d] = (cnt[p.d] || 0) + 1; });
+    const total = resp.reduce((a, b) => a + b, 0), pct = Math.round(total / (PERGUNTAS.length * 3) * 100);
+    const nivel = [...NIVEIS].reverse().find(n => pct >= n.min);
+    const menor = Object.keys(dim).sort((a, b) => dim[a] / cnt[a] - dim[b] / cnt[b])[0];
+
+    quizBox.hidden = true;
+    resultBox.hidden = false;
+
+    const ringId = resultBoxId + 'Ring';
+    const againBtnId = resultBoxId + 'Again';
+
+    const actionBtns = isApp
+      ? `<button class="btn btn-lime" type="button" data-action="app" data-view="mapa">Buscar parceiros no mapa</button>
+         <button class="btn btn-ghost-dark" type="button" data-action="app" data-view="nova">Cadastrar organização</button>
+         <button class="btn btn-ghost-dark" id="${againBtnId}" type="button">Refazer teste</button>`
+      : `<a class="btn btn-lime" href="#mapa">Buscar parceiros no mapa</a>
+         <button class="btn btn-ghost" type="button" data-action="new-org">Cadastrar organização</button>
+         <button class="btn btn-ghost" id="${againBtnId}" type="button">Refazer teste</button>`;
+
+    resultBox.innerHTML = `
+      <div class="score-ring" id="${ringId}"><span>${pct}%</span></div>
+      <p class="eyebrow">Seu nível</p><h3>${nivel.nome}</h3><p>${nivel.txt}</p>
+      <div class="bars">${Object.keys(DIMENSOES).map(k => {
+        const v = Math.round(dim[k] / (cnt[k] * 3) * 100);
+        return `<div class="bar-row"><small><span>${DIMENSOES[k]}</span><span>${v}%</span></small><div class="bar"><div data-w="${v}"></div></div></div>`;
+      }).join('')}</div>
+      <p><strong>Ponto de atenção prioritário:</strong> ${DIMENSOES[menor]}.</p>
+      <p style="margin-top:14px"><strong>Próximos passos recomendados:</strong></p>
+      <ul>${nivel.dicas.map(d => `<li>${d}</li>`).join('')}</ul>
+      <div class="actions">${actionBtns}</div>`;
+
+    requestAnimationFrame(() => {
+      const ring = document.getElementById(ringId);
+      if (ring) ring.style.setProperty('--p', pct);
+      resultBox.querySelectorAll('.bar div').forEach(b => b.style.width = b.dataset.w + '%');
+    });
+
+    resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    const againBtn = document.getElementById(againBtnId);
+    if (againBtn) againBtn.onclick = () => reset();
+
+    const u = user();
+    const saveKey = 'inova_diag_' + (u ? u.id : 'guest');
+    LS.set(saveKey, { pct, nivel: nivel.nome, data: new Date().toISOString(), menor, dim });
+    toast('Diagnóstico de inovação calculado e salvo!');
+  }
+
+  renderPergunta();
+  return { reset, renderPergunta };
 }
 
-/* ---------- 15) INICIALIZAÇÃO ---------- */
-renderPergunta();
+// Inicializa o Quiz da página inicial
+const publicQuizCtrl = createQuizController({
+  stepId: 'quizStep',
+  barId: 'quizBar',
+  bodyId: 'quizBody',
+  prevId: 'prevBtn',
+  nextId: 'nextBtn',
+  quizBoxId: 'quiz',
+  resultBoxId: 'result',
+  isApp: false
+});
+
+// Inicializa o Quiz interno do Painel (Área logada)
+let appQuizCtrl = null;
+function renderAppDiag() {
+  const u = user();
+  const dg = LS.get('inova_diag_' + u.id, null);
+
+  if (!appQuizCtrl) {
+    appQuizCtrl = createQuizController({
+      stepId: 'appQuizStep',
+      barId: 'appQuizBar',
+      bodyId: 'appQuizBody',
+      prevId: 'appPrevBtn',
+      nextId: 'appNextBtn',
+      quizBoxId: 'appQuiz',
+      resultBoxId: 'appResult',
+      isApp: true
+    });
+  }
+
+  // Se o usuário já tiver diagnóstico salvo, exibe o cartão de resultado com opção de refazer
+  if (dg) {
+    $('#appQuiz').hidden = true;
+    const r = $('#appResult');
+    r.hidden = false;
+    const nivel = NIVEIS.find(n => n.nome === dg.nivel) || NIVEIS[0];
+    r.innerHTML = `
+      <div class="score-ring" id="appResultSavedRing"><span>${dg.pct}%</span></div>
+      <p class="eyebrow">Diagnóstico Atual</p><h3>${dg.nivel}</h3><p>${nivel.txt}</p>
+      <p style="margin-top:14px"><strong>Realizado em:</strong> ${fmtDate(dg.data)}</p>
+      ${dg.menor ? `<p><strong>Ponto de atenção:</strong> ${DIMENSOES[dg.menor] || dg.menor}</p>` : ''}
+      <p style="margin-top:14px"><strong>Próximos passos recomendados:</strong></p>
+      <ul>${nivel.dicas.map(d => `<li>${d}</li>`).join('')}</ul>
+      <div class="actions" style="margin-top:24px">
+        <button class="btn btn-lime" type="button" data-action="app" data-view="mapa">Buscar parceiros no mapa</button>
+        <button class="btn btn-ghost-dark" type="button" data-action="app" data-view="nova">Cadastrar organização</button>
+        <button class="btn btn-orange" id="appRetakeBtn" type="button">Refazer diagnóstico</button>
+      </div>`;
+
+    requestAnimationFrame(() => {
+      const ring = document.getElementById('appResultSavedRing');
+      if (ring) ring.style.setProperty('--p', dg.pct);
+    });
+
+    const retake = document.getElementById('appRetakeBtn');
+    if (retake) {
+      retake.onclick = () => {
+        appQuizCtrl.reset();
+      };
+    }
+  } else {
+    appQuizCtrl.reset();
+  }
+}
+
+/* ---------- 15) CONTROLE DE TEMA (MODO ESCURO / CLARO) ---------- */
+function initTheme() {
+  const saved = LS.get('inova_theme', 'dark');
+  document.documentElement.setAttribute('data-theme', saved);
+  updateThemeUI(saved);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  LS.set('inova_theme', next);
+  updateThemeUI(next);
+  refreshIcons();
+  toast(next === 'dark' ? 'Modo escuro ativado (descanso visual).' : 'Modo claro ativado.');
+}
+
+function updateThemeUI(theme) {
+  const isDark = theme === 'dark';
+  $$('.theme-toggle-btn').forEach(btn => {
+    btn.title = isDark ? 'Alternar para modo claro' : 'Alternar para modo escuro';
+    btn.setAttribute('aria-label', btn.title);
+    const txt = btn.querySelector('.theme-text');
+    if (txt) txt.textContent = isDark ? 'Modo Escuro' : 'Modo Claro';
+  });
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('#themeToggleBtn, #publicThemeToggleBtn');
+  if (b) { e.preventDefault(); toggleTheme(); }
+});
+
+/* ---------- 16) MENU LATERAL RETRÁTIL (COLLAPSIBLE SIDEBAR) ---------- */
+function initSidebarCollapse() {
+  const btn = $('#sideCollapseBtn');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      const app = $('#app');
+      const isCollapsed = app.classList.toggle('side-collapsed');
+      LS.set('inova_side_collapsed', isCollapsed);
+      setTimeout(() => {
+        dashMapCtrl && dashMapCtrl.invalidate();
+        fullAppMapCtrl && fullAppMapCtrl.invalidate();
+      }, 320);
+    });
+  }
+  if (LS.get('inova_side_collapsed', false)) {
+    $('#app').classList.add('side-collapsed');
+  }
+}
+
+/* ---------- 17) INICIALIZAÇÃO GERAL ---------- */
+initTheme();
+initSidebarCollapse();
+
+publicMapCtrl = initMapComponent({
+  mapId: 'map',
+  listId: 'list',
+  searchId: 'searchInput',
+  chipsId: 'chips'
+});
+
 renderAuthUI();
-refreshMap();
 route();
+refreshIcons();
