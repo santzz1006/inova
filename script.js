@@ -218,7 +218,9 @@ function showApp(view) {
   const u = user();
   $('#site').hidden = true; $('#app').hidden = false;
   $('#side').classList.remove('open'); $('#scrim').classList.remove('show');
-  $$('[data-view]').forEach(s => s.hidden = s.dataset.view !== view);
+  // data-view também identifica os links da navegação. Esconda somente as
+  // páginas do painel para manter todas as opções do menu lateral visíveis.
+  $$('.main > section[data-view]').forEach(s => s.hidden = s.dataset.view !== view);
   $$('#side nav button[data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === view));
   $('#viewTitle').textContent = view === 'nova' && editingId ? 'Editar organização' : (VIEWS[view] || 'Painel');
   document.title = (VIEWS[view] || 'Painel') + ' · Camaçari INOVA';
