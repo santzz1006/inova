@@ -180,6 +180,8 @@ const VIEWS = {
   diagnostico: 'Diagnóstico de Inovação',
   nova: 'Organização',
   minhas: 'Minhas organizações',
+  conexoes: 'Central de conexões',
+  mensagens: 'Mensagens',
   moderacao: 'Moderação',
   perfil: 'Meu perfil'
 };
@@ -230,6 +232,8 @@ function showApp(view) {
     diagnostico: renderAppDiag,
     nova: initForm,
     minhas: renderMine,
+    conexoes: renderMatches,
+    mensagens: renderMessages,
     moderacao: renderMod,
     perfil: renderProfile
   };
@@ -477,6 +481,22 @@ const form = $('#orgForm'), steps = $$('.step', form);
 let step = 0, editingId = null;
 
 $('#f-tipo').innerHTML = '<option value="">Selecione…</option>' + Object.entries(TIPOS).map(([k, v]) => `<option value="${k}">${v.nome}</option>`).join('');
+$('#f-tipo-cadastro').addEventListener('change', e => {
+  const pessoa = e.target.value === 'pessoa';
+  $('#juridicoFields').hidden = pessoa;
+  $('#fNomeLabel').innerHTML = pessoa ? 'Nome completo <i>*</i>' : 'Nome da empresa ou instituição <i>*</i>';
+  $('#f-tipo').disabled = pessoa;
+  if (pessoa) $('#f-tipo').value = 'outro';
+});
+$('#f-cnpj').addEventListener('input', e => {
+  const d = e.target.value.replace(/\D/g, '').slice(0, 14);
+  let v = d;
+  if (v.length > 2) v = v.slice(0, 2) + '.' + v.slice(2);
+  if (d.length > 5) v = v.slice(0, 6) + '.' + v.slice(6);
+  if (d.length > 8) v = v.slice(0, 10) + '/' + v.slice(10);
+  if (d.length > 12) v = v.slice(0, 15) + '-' + v.slice(15);
+  e.target.value = v;
+});
 $('#cidadesList').innerHTML = Object.keys(CIDADES).map(c => `<option value="${c}">`).join('');
 $('#areasBox').innerHTML = Object.keys(CIDADES).map(c => `<label class="check"><input type="checkbox" name="areas" value="${esc(c)}"><span>${esc(c)}</span></label>`).join('');
 
@@ -549,13 +569,18 @@ function initForm() {
   $$('[data-err]', form).forEach(s => setErr(s.dataset.err, ''));
   $('#cepHint').textContent = '';
   const o = editingId ? DB.orgs().find(x => x.id === editingId) : null;
-  $('#formTitle').textContent = o ? `✏️ Editando: ${o.nome}` : '📌 Apresentação / Objetivo';
+  $('#formTitle span').textContent = o ? `Editando: ${o.nome}` : 'Apresentação / Objetivo';
   $('#fSubmit').textContent = o ? 'Salvar alterações' : 'Enviar para análise';
   if (o) {
+    form.elements.tipoCadastro.value = o.tipoCadastro || 'organizacao';
+    $('#f-tipo-cadastro').dispatchEvent(new Event('change'));
+    form.elements.razaoSocial.value = o.razaoSocial || '';
+    form.elements.cnpj.value = o.cnpj || '';
     ['nome', 'tipo', 'cep', 'numero', 'rua', 'bairro', 'cidade', 'desc', 'comp', 'rec', 'dem', 'site', 'email'].forEach(n => form.elements[n].value = o[n] || '');
     $$('[name=areas]', form).forEach(c => c.checked = (o.areas || []).includes(c.value));
     const r = $(`[name=autoriza][value=${o.autoriza ? 'sim' : 'nao'}]`, form); if (r) r.checked = true;
   }
+  else { $('#f-tipo-cadastro').value = 'organizacao'; $('#f-tipo-cadastro').dispatchEvent(new Event('change')); }
   showStep(0);
 }
 
@@ -575,7 +600,7 @@ form.addEventListener('submit', async e => {
   for (let i = 0; i < steps.length; i++) if (!validateStep(i)) return showStep(i);
   const btn = $('#fSubmit'); btn.disabled = true; const old = btn.textContent; btn.textContent = 'Salvando…';
   const d = {
-    nome: getVal('nome').trim(), tipo: getVal('tipo'), cep: getVal('cep').trim(), numero: getVal('numero').trim(),
+    nome: getVal('nome').trim(), tipoCadastro: getVal('tipoCadastro'), razaoSocial: getVal('razaoSocial').trim(), cnpj: getVal('cnpj').trim(), tipo: getVal('tipo'), cep: getVal('cep').trim(), numero: getVal('numero').trim(),
     rua: getVal('rua').trim(), bairro: getVal('bairro').trim(), cidade: getVal('cidade').trim(), areas: getVal('areas'),
     desc: getVal('desc').trim(), comp: getVal('comp').trim(), rec: getVal('rec').trim(), dem: getVal('dem').trim(),
     site: getVal('site').trim(), email: getVal('email').trim(), autoriza: getVal('autoriza') === 'sim'
@@ -628,6 +653,85 @@ function orgRow(o, mode) {
     </div>
     <div class="acts">${acts.join('')}</div>
   </div>`;
+}
+
+/* ---------- Conexões e solicitações de contato ---------- */
+const connections = () => LS.get('inova_connections', []);
+function renderMatches() {
+  const mine = myOrgs();
+  const needs = mine.flatMap(o => tags(o.dem).map(term => ({ term, source: o.nome })));
+  const targets = DB.orgs().filter(o => o.status === 'aprovada' && o.autoriza)
+    .filter(o => !mine.some(m => m.id === o.id));
+  const found = targets.map(o => {
+    const available = [...tags(o.rec), ...tags(o.comp)];
+    const hits = needs.filter(n => available.some(a => {
+      const x = n.term.toLocaleLowerCase('pt-BR'), y = a.toLocaleLowerCase('pt-BR');
+      return x === y || (x.length > 4 && y.includes(x)) || (y.length > 4 && x.includes(y));
+    }));
+    return { o, hits: [...new Set(hits.map(h => h.term))] };
+  }).filter(x => x.hits.length).sort((a, b) => b.hits.length - a.hits.length);
+  const el = $('#matchList');
+  el.innerHTML = found.length ? found.map(({ o, hits }) => {
+    const sent = connections().some(c => c.from === DB.session() && c.target === o.id);
+    return `<article class="row"><div class="row-main"><b>${esc(o.nome)}</b><small>${esc((TIPOS[o.tipo] || TIPOS.outro).nome)} · ${esc(o.cidade || 'Ecossistema')}</small><p>Compatibilidade: ${hits.map(esc).join(', ')}</p><small>Ativos: ${esc(o.rec || o.comp || 'Competências cadastradas')}</small></div><div class="row-actions"><button type="button" class="btn btn-orange btn-sm" data-connect="${esc(o.id)}" ${sent ? 'disabled' : ''}>${sent ? 'Solicitação enviada' : 'Solicitar contato'}</button></div></article>`;
+  }).join('') : `<div class="empty-box">Ainda não encontramos compatibilidades. Cadastre ativos e demandas em uma organização aprovada para receber sugestões.</div>`;
+  el.querySelectorAll('[data-connect]').forEach(btn => btn.addEventListener('click', () => {
+    const list = connections();
+    list.push({ id: uid(), from: DB.session(), target: btn.dataset.connect, created: new Date().toISOString(), status: 'pendente' });
+    LS.set('inova_connections', list); toast('Solicitação de contato enviada.'); renderMatches();
+  }));
+}
+let activeChatId = null;
+function renderMessages() {
+  const me = DB.session(), list = connections();
+  const mine = list.filter(c => c.from === me || DB.orgs().some(o => o.id === c.target && o.ownerId === me));
+  const el = $('#messageList');
+  el.innerHTML = mine.length ? mine.map(c => {
+    const target = DB.orgs().find(o => o.id === c.target) || {};
+    const sender = DB.users().find(u => u.id === c.from) || {};
+    const incoming = target.ownerId === me;
+    const peer = incoming ? sender.nome : target.nome;
+    const actions = incoming && c.status === 'pendente'
+      ? `<button type="button" class="btn btn-orange btn-sm" data-connection-action="aceitar" data-id="${esc(c.id)}">Aceitar</button><button type="button" class="btn btn-ghost-dark btn-sm" data-connection-action="recusar" data-id="${esc(c.id)}">Recusar</button>`
+      : c.status === 'aceita'
+        ? `<button type="button" class="btn ${activeChatId === c.id ? 'btn-orange' : 'btn-ghost-dark'} btn-sm" data-open-chat="${esc(c.id)}">Abrir chat</button>`
+        : `<small>${esc(c.status === 'recusada' ? 'Recusada' : 'Aguardando resposta')}</small>`;
+    return `<article class="row chat-contact ${activeChatId === c.id ? 'is-active' : ''}"><div class="row-main"><b>${esc(peer || 'Participante')}</b><small>${esc(c.status === 'aceita' ? 'Conexão aceita' : c.status === 'pendente' ? (incoming ? 'Solicitação recebida' : 'Solicitação enviada') : 'Solicitação recusada')}</small></div><div class="row-actions">${actions}</div></article>`;
+  }).join('') : '<div class="empty-box">Você ainda não tem solicitações. Encontre uma conexão na Central de conexões.</div>';
+
+  el.querySelectorAll('[data-connection-action]').forEach(btn => btn.addEventListener('click', () => {
+    const next = connections().map(c => c.id === btn.dataset.id ? { ...c, status: btn.dataset.connectionAction === 'aceitar' ? 'aceita' : 'recusada' } : c);
+    LS.set('inova_connections', next);
+    if (btn.dataset.connectionAction === 'aceitar') activeChatId = btn.dataset.id;
+    renderMessages();
+    toast(btn.dataset.connectionAction === 'aceitar' ? 'Conexão aceita. O chat está disponível.' : 'Solicitação recusada.');
+  }));
+  el.querySelectorAll('[data-open-chat]').forEach(btn => btn.addEventListener('click', () => { activeChatId = btn.dataset.openChat; renderMessages(); }));
+
+  const active = mine.find(c => c.id === activeChatId && c.status === 'aceita');
+  const panel = $('#chatPanel');
+  if (!active) {
+    panel.innerHTML = '<div class="chat-placeholder">Selecione uma conexão aceita para abrir o chat.</div>';
+    return;
+  }
+  const target = DB.orgs().find(o => o.id === active.target) || {};
+  const sender = DB.users().find(u => u.id === active.from) || {};
+  const incoming = target.ownerId === me;
+  const peerName = incoming ? sender.nome : target.nome;
+  const messages = active.messages || [];
+  panel.innerHTML = `<div class="chat-header"><div class="panel-tag">Chat da conexão</div><h3>${esc(peerName || 'Participante')}</h3></div><div class="chat-feed" id="chatFeed">${messages.length ? messages.map(m => `<div class="chat-message ${m.sender === me ? 'mine' : ''}"><p>${esc(m.text)}</p><small>${fmtDate(m.created)} · ${m.sender === me ? 'Você' : esc(peerName || 'Participante')}</small></div>`).join('') : '<div class="chat-placeholder">Inicie a conversa com uma mensagem.</div>'}</div><form id="chatForm" class="chat-compose"><textarea name="message" maxlength="2000" rows="2" placeholder="Escreva sua mensagem…" required></textarea><button class="btn btn-orange" type="submit">Enviar</button></form>`;
+  $('#chatForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const input = e.currentTarget.elements.message, text = input.value.trim();
+    if (!text) return;
+    const current = connections();
+    const index = current.findIndex(c => c.id === active.id);
+    if (index < 0) return;
+    current[index].messages = [...(current[index].messages || []), { id: uid(), sender: me, text, created: new Date().toISOString() }];
+    LS.set('inova_connections', current); renderMessages();
+    $('#chatFeed').scrollTop = $('#chatFeed').scrollHeight;
+  });
+  $('#chatFeed').scrollTop = $('#chatFeed').scrollHeight;
 }
 
 function renderDashboard() {
@@ -722,7 +826,7 @@ function renderMine() {
 function renderMod() {
   const all = DB.orgs();
   const pend = all.filter(o => o.status === 'analise');
-  $('#modList').innerHTML = pend.length ? pend.map(o => orgRow(o, 'mod')).join('') : '<div class="empty-box">Nenhuma organização aguardando análise. 🎉</div>';
+  $('#modList').innerHTML = pend.length ? pend.map(o => orgRow(o, 'mod')).join('') : '<div class="empty-box">Nenhuma organização aguardando análise. </div>';
   $('#allOrgs').innerHTML = all.length ? all.map(o => orgRow(o, 'mod')).join('') : '<div class="empty-box">Nenhuma organização cadastrada.</div>';
   renderAuthUI();
 }
@@ -810,7 +914,7 @@ const NIVEIS = [
   { min: 0,  nome: 'Explorador', txt: 'Sua organização está começando a jornada. O foco agora é criar base e hábito.', dicas: ['Defina 1 desafio claro para resolver com inovação.', 'Reserve um tempo mensal para testar ideias com a equipe.', 'Cadastre sua organização e conheça quem já atua na região.'] },
   { min: 35, nome: 'Experimentador', txt: 'Já existem iniciativas, mas ainda sem constância. É hora de estruturar.', dicas: ['Crie um canal simples para coletar e priorizar ideias.', 'Escolha 2 indicadores objetivos para acompanhar seus pilotos.', 'Busque no mapa organizações com competências complementares.'] },
   { min: 65, nome: 'Estruturado', txt: 'Você já tem processos e cultura em desenvolvimento. O próximo passo é escalar conexões.', dicas: ['Formalize orçamento e metas claras de inovação.', 'Abra projetos conjuntos com universidades, centros de P&D ou startups.', 'Compartilhe seus casos de sucesso para atrair novos parceiros.'] },
-  { min: 85, nome: 'Referência', txt: 'Sua organização é líder em inovação no território. Momento de acelerar parcerias.', dicas: ['Mentore e apoie organizações em estágios iniciais.', 'Lidere projetos colaborativos de alto impacto no ecossistema.', 'Mantenha seus dados e ofertas de colaboração atualizados no mapa.'] }
+  { min: 85, nome: 'Referência', txt: 'Sua organização é líder em inovação no território. Momento de acelerar parcerias.', dicas: ['Mentore e apoie organizações em estágios iniciais.', 'Lidere projetos colaborativos de alto impacto no ecossistema.', 'Mantenha seus ativos e demandas atualizados no mapa.'] }
 ];
 
 function createQuizController({ stepId, barId, bodyId, prevId, nextId, quizBoxId, resultBoxId, isApp = false }) {
@@ -1019,14 +1123,14 @@ function initSidebarCollapse() {
     btn.addEventListener('click', () => {
       const app = $('#app');
       const isCollapsed = app.classList.toggle('side-collapsed');
-      LS.set('inova_side_collapsed', isCollapsed);
+      LS.set('inova_side_collapsed_v2', isCollapsed);
       setTimeout(() => {
         dashMapCtrl && dashMapCtrl.invalidate();
         fullAppMapCtrl && fullAppMapCtrl.invalidate();
       }, 320);
     });
   }
-  if (LS.get('inova_side_collapsed', false)) {
+  if (LS.get('inova_side_collapsed_v2', false)) {
     $('#app').classList.add('side-collapsed');
   }
 }

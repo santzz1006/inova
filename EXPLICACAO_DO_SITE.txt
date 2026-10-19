@@ -3,7 +3,7 @@
           Explicação Detalhada do Funcionamento, Ideia Central e Ferramentas
 ================================================================================
 
-Data de Atualização: Outubro de 2026
+Data de Atualização: 19 de outubro de 2026
 Plataforma: Camaçari INOVA (Central de Inovação e Conexões)
 Repositório Oficial: https://github.com/santzz1006/inova.git
 
@@ -21,9 +21,11 @@ Repositório Oficial: https://github.com/santzz1006/inova.git
    4.4. Sistema de Autenticação e Segurança (Criptografia no Navegador)
    4.5. Painel de Controle (Dashboard do Usuário com KPIs)
    4.6. Módulo "Minhas Organizações" (Gestão de Cadastros)
-   4.7. Módulo de Moderação (Painel Administrativo)
-   4.8. Perfil de Usuário, Segurança e Privacidade (LGPD)
-   4.9. Temas Visuais (Modo Escuro / Claro) e Menu Retrátil
+   4.7. Central de Conexões (Matchmaking por Ativos e Demandas)
+   4.8. Chat e Solicitações de Contato
+   4.9. Módulo de Moderação (Painel Administrativo)
+   4.10. Perfil de Usuário, Segurança e Privacidade (LGPD)
+   4.11. Temas Visuais (Modo Escuro / Claro) e Menu Retrátil
 5. Ciclo de Vida de uma Organização na Plataforma
 6. Guia Rápido de Uso para o Usuário e para o Administrador
 7. Estrutura de Arquivos do Projeto
@@ -75,8 +77,10 @@ leve e extremamente rápida, sem depender de frameworks pesados:
 - Lucide Icons: Coleção moderna de ícones SVG vetoriais com alta legibilidade.
 - Web Crypto API (SHA-256): Criptografia de senhas com sal (salt) único por usuário,
   garantindo segurança de alto nível diretamente na máquina cliente.
-- LocalStorage (Web Storage): Persistência de dados das organizações, perfis,
-  diagnósticos e configurações de interface.
+- LocalStorage (Web Storage): Persistência local dos dados das organizações,
+  perfis, diagnósticos, conexões, mensagens do chat e configurações de interface.
+  Os dados ficam no navegador atual; não há sincronização por servidor entre
+  dispositivos ou navegadores diferentes.
 
 
 ================================================================================
@@ -177,8 +181,12 @@ O formulário de cadastro é estruturado em formato multi-step (passo a passo) p
 não sobrecarregar o usuário e garantir qualidade dos dados.
 
 - Seção 1: Identificação Básica
-  * Nome da Organização (mínimo de 3 caracteres)
-  * Tipo de Ator (seleção do segmento no ecossistema)
+  * Escolha entre cadastro de pessoa física ou empresa/instituição.
+  * Pessoa física: nome completo e tipo de ator.
+  * Empresa/instituição: nome, razão social e CNPJ (com máscara de preenchimento),
+    além do tipo de ator no ecossistema.
+  * O nome deve ter pelo menos 3 caracteres. Os campos de endereço e tipo de ator
+    continuam sendo usados para mapear o participante.
 
 - Seção 2: Endereço e Área de Atuação
   * Campo de CEP com máscara automática (00000-000)
@@ -190,8 +198,11 @@ não sobrecarregar o usuário e garantir qualidade dos dados.
 - Seção 3: Conhecendo sua Organização
   * Descrição Institucional (mínimo de 20 caracteres para garantir qualidade da informação)
   * Competências e Tecnologias Disponíveis (termos separados por vírgula que alimentam o motor de busca)
-  * Recursos Disponíveis Para Colaboração (espaço físico, laboratórios, equipamentos, time técnico)
-  * Demandas / Necessidades Atuais (o que a organização busca: parceiros, investimentos, mentoria)
+  * Ativos: recursos disponíveis para colaboração, como tecnologia, laboratório,
+    conhecimento, mercado, financiamento, equipamentos e equipe técnica.
+  * Demandas: problemas, necessidades e busca por parceiros, pesquisadores,
+    soluções, fornecedores ou competências.
+  * Os campos de Ativos e Demandas alimentam a Central de Conexões.
 
 - Seção 4: Contato, LGPD e Envio
   * Site Institucional (validação de formato de URL)
@@ -242,7 +253,36 @@ Ao fazer login, o usuário é recebido em seu Painel Geral:
   * Excluir: Remove a organização definitivamente com confirmação de segurança.
 
 --------------------------------------------------------------------------------
-4.7. MÓDULO DE MODERAÇÃO (PAINEL ADMINISTRATIVO)
+4.7. CENTRAL DE CONEXÕES (MATCHMAKING POR ATIVOS E DEMANDAS)
+--------------------------------------------------------------------------------
+A Central de Conexões fica na área logada e aproxima participantes com base nas
+informações aprovadas que cadastraram:
+- O sistema compara os termos de Demandas de uma organização com os Ativos e
+  competências registrados por outras organizações aprovadas e autorizadas.
+- As correspondências encontradas aparecem com os termos compatíveis e a
+  identificação do participante.
+- O usuário pode enviar uma solicitação de contato. A outra parte pode aceitar
+  ou recusar a solicitação na área "Conversas e solicitações".
+- Ao aceitar, a conexão libera um chat para os participantes trocarem mensagens.
+- O cadastro pode ser atualizado para manter Ativos e Demandas relevantes para
+  as sugestões de conexão.
+
+--------------------------------------------------------------------------------
+4.8. CHAT E SOLICITAÇÕES DE CONTATO
+--------------------------------------------------------------------------------
+- A área de conversas lista solicitações recebidas e enviadas, com seu estado:
+  aguardando resposta, aceita ou recusada.
+- Solicitações recebidas podem ser aceitas ou recusadas. O chat fica disponível
+  após o aceite.
+- Cada conexão aceita possui uma conversa própria, com identificação visual das
+  mensagens enviadas pelo usuário e pelo outro participante.
+- As mensagens são salvas junto à conexão no LocalStorage do navegador atual.
+  Como o projeto ainda não possui servidor ou banco compartilhado, o histórico
+  não é sincronizado com a conta do outro participante em outro dispositivo ou
+  navegador, e não há entrega em tempo real entre aparelhos.
+
+--------------------------------------------------------------------------------
+4.9. MÓDULO DE MODERAÇÃO (PAINEL ADMINISTRATIVO)
 --------------------------------------------------------------------------------
 Visível exclusivamente para usuários cadastrados com e-mails definidos como administradores
 (por padrão, configurado para "admin@camacariinova.com" ou contas com sinalizador admin: true):
@@ -255,7 +295,7 @@ Visível exclusivamente para usuários cadastrados com e-mails definidos como ad
 - Aba "Todas as Organizações Cadastradas": Visão geral de tudo o que existe no banco de dados.
 
 --------------------------------------------------------------------------------
-4.8. PERFIL DE USUÁRIO, SEGURANÇA E PRIVACIDADE (LGPD)
+4.10. PERFIL DE USUÁRIO, SEGURANÇA E PRIVACIDADE (LGPD)
 --------------------------------------------------------------------------------
 Localizado em "Meu perfil", atende às boas práticas da Lei Geral de Proteção de Dados:
 - Dados Cadastrais: Atualização de Nome Completo, Telefone de contato e Cargo/Função.
@@ -264,7 +304,7 @@ Localizado em "Meu perfil", atende às boas práticas da Lei Geral de Proteção
 - Exclusão da Conta (Direito ao Esquecimento): Permite ao usuário excluir permanentemente sua conta e todas as organizações que foram cadastradas por ela com um único clique consciente.
 
 --------------------------------------------------------------------------------
-4.9. TEMAS VISUAIS (MODO ESCURO / CLARO) E MENU RETRÁTIL
+4.11. TEMAS VISUAIS (MODO ESCURO / CLARO) E MENU RETRÁTIL
 --------------------------------------------------------------------------------
 - Modo Escuro (Dark Mode) Nativo:
   * O site foi projetado com tema escuro de alto contraste e sofisticação por padrão, reduzindo o cansaço visual.
@@ -310,13 +350,22 @@ COMO FAZER O DIAGNÓSTICO:
 2. Responda com honestidade às 8 questões objetivas.
 3. Clique em "Ver resultado" para receber o gráfico das 4 dimensões e o plano de ação sugerido.
 
+COMO ENCONTRAR CONEXÕES E USAR O CHAT:
+1. Cadastre Ativos e Demandas em uma organização e envie o cadastro para análise.
+2. Depois da aprovação e autorização de publicação, acesse "Central de conexões".
+3. Consulte participantes sugeridos e envie uma solicitação de contato.
+4. Acesse "Mensagens" para aceitar ou recusar solicitações recebidas.
+5. Após aceitar uma conexão, abra o chat para registrar mensagens.
+6. No estado atual do MVP, as mensagens ficam apenas no navegador em que foram
+   escritas; a conversa entre dispositivos diferentes requer um backend compartilhado.
+
 
 ================================================================================
 7. ESTRUTURA DE ARQUIVOS DO PROJETO
 ================================================================================
 - index.html: Documento principal com a estrutura semântica da landing page, área logada e diálogos modais.
-- style.css: Folha de estilos completa com o design system, regras de dark/light mode, efeitos glassmorphism e responsividade.
-- script.js: Toda a lógica do aplicativo (SPA, Leaflet, autenticação, questionário de diagnóstico, formulários, moderação e LocalStorage).
+- style.css: Folha de estilos completa com o design system, regras de dark/light mode, efeitos glassmorphism, layout do chat e responsividade.
+- script.js: Toda a lógica do aplicativo (SPA, Leaflet, autenticação, questionário de diagnóstico, formulários, matchmaking, solicitações, chat, moderação e LocalStorage).
 - logo.inova.svg: Identidade visual da marca Camaçari INOVA em formato vetorial de alta definição.
 - lucide.min.js: Biblioteca local de ícones vetoriais modernos.
 - fonts/: Família tipográfica completa Alpino nos formatos WOFF2, WOFF, TTF e EOT.

@@ -203,6 +203,9 @@
         <i data-lucide="layout-dashboard" class="ic"></i>
         <span class="nav-label">Painel</span>
       </button>
+      <button type="button" data-action="app" data-view="conexoes" data-tooltip="Central de conexões">
+        <i data-lucide="handshake" class="ic"></i><span class="nav-label">Conexões</span>
+      </button>
       <button type="button" data-action="app" data-view="mapa" data-tooltip="Mapa do Ecossistema">
         <i data-lucide="map-pin" class="ic"></i>
         <span class="nav-label">Mapa do Ecossistema</span>
@@ -218,6 +221,9 @@
       <button type="button" data-action="app" data-view="minhas" data-tooltip="Minhas Organizações">
         <i data-lucide="building" class="ic"></i>
         <span class="nav-label">Minhas organizações</span>
+      </button>
+      <button type="button" data-action="app" data-view="mensagens" data-tooltip="Solicitações e mensagens">
+        <i data-lucide="messages-square" class="ic"></i><span class="nav-label">Mensagens</span>
       </button>
       <button type="button" data-action="app" data-view="moderacao" id="navMod" hidden data-tooltip="Moderação">
         <i data-lucide="shield-check" class="ic"></i>
@@ -265,6 +271,7 @@
         </div>
         <div class="quick">
           <button class="btn btn-orange btn-sm" type="button" data-action="app" data-view="nova"><svg class="ic"><use href="#i-plus"/></svg>Cadastrar organização</button>
+          <button class="btn btn-ghost-dark btn-sm" type="button" data-action="app" data-view="conexoes"><i data-lucide="handshake" class="ic"></i>Conexões</button>
           <button class="btn btn-ghost-dark btn-sm" type="button" data-action="app" data-view="diagnostico"><svg class="ic"><use href="#i-chart"/></svg>Fazer diagnóstico</button>
           <button class="btn btn-ghost-dark btn-sm" type="button" data-action="app" data-view="mapa"><svg class="ic"><use href="#i-map"/></svg>Ver mapa completo</button>
         </div>
@@ -356,7 +363,7 @@
     <!-- NOVA ORGANIZAÇÃO -->
     <section data-view="nova" hidden>
       <div class="panel intro">
-        <h2 id="formTitle">📌 Apresentação / Objetivo</h2>
+        <h2 id="formTitle"><svg class="ic"><use href="#i-building"/></svg><span>Apresentação / Objetivo</span></h2>
         <p><strong>Objetivo:</strong> mapear organizações, competências, recursos, tecnologias e demandas do ecossistema, promovendo conexões e oportunidades de colaboração.</p>
         <p class="note-box"><strong>Nota:</strong> as informações serão analisadas pela equipe responsável e somente os dados autorizados e aprovados serão publicados na Central de Conexões.</p>
       </div>
@@ -369,15 +376,17 @@
 
         <!-- Seção 1 -->
         <fieldset class="step">
-          <legend>📄 Seção 1: Identificação Básica</legend>
-          <div class="field"><label for="f-nome">Nome da Organização <i>*</i></label><input id="f-nome" name="nome" type="text" maxlength="120"><span class="err" data-err="nome"></span></div>
+          <legend><svg class="ic"><use href="#i-building"/></svg> Seção 1: Identificação Básica</legend>
+          <div class="field"><label for="f-tipo-cadastro">Você está cadastrando</label><select id="f-tipo-cadastro" name="tipoCadastro"><option value="organizacao">Empresa ou instituição</option><option value="pessoa">Pessoa física</option></select></div>
+          <div class="field"><label for="f-nome" id="fNomeLabel">Nome da empresa ou instituição <i>*</i></label><input id="f-nome" name="nome" type="text" maxlength="120"><span class="err" data-err="nome"></span></div>
+          <div id="juridicoFields" class="grid2"><div class="field"><label for="f-razao">Razão social</label><input id="f-razao" name="razaoSocial" type="text" maxlength="160"></div><div class="field"><label for="f-cnpj">CNPJ</label><input id="f-cnpj" name="cnpj" type="text" inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00"></div></div>
           <div class="field"><label for="f-tipo">Tipo de Ator <i>*</i></label>
             <select id="f-tipo" name="tipo"></select><span class="err" data-err="tipo"></span></div>
         </fieldset>
 
         <!-- Seção 2 -->
         <fieldset class="step" hidden>
-          <legend>📍 Seção 2: Endereço / Área de Atuação</legend>
+          <legend><svg class="ic"><use href="#i-map"/></svg> Seção 2: Endereço / Área de Atuação</legend>
           <div class="grid2">
             <div class="field"><label for="f-cep">CEP <i>*</i></label><input id="f-cep" name="cep" type="text" inputmode="numeric" placeholder="00000-000" maxlength="9"><span class="err" data-err="cep"></span><small class="hint" id="cepHint"></small></div>
             <div class="field"><label for="f-numero">Número do endereço <i>*</i></label><input id="f-numero" name="numero" type="text" maxlength="12"><span class="err" data-err="numero"></span></div>
@@ -397,16 +406,18 @@
 
         <!-- Seção 3 -->
         <fieldset class="step" hidden>
-          <legend>🏢 Seção 3: Conhecendo sua Organização</legend>
+          <legend><svg class="ic"><use href="#i-bulb"/></svg> Seção 3: Conhecendo sua Organização</legend>
           <div class="field"><label for="f-desc">Descrição Institucional <i>*</i></label><textarea id="f-desc" name="desc" rows="4" maxlength="1200"></textarea><span class="err" data-err="desc"></span></div>
-          <div class="field"><label for="f-comp">Competências e Tecnologias Disponíveis</label><textarea id="f-comp" name="comp" rows="3" maxlength="800" placeholder="Separe por vírgula. Ex.: Desenvolvimento de software, Análise de dados, Automação industrial"></textarea></div>
-          <div class="field"><label for="f-rec">Recursos Disponíveis Para Colaboração</label><textarea id="f-rec" name="rec" rows="3" maxlength="800" placeholder="Ex.: Laboratórios, equipe técnica, espaço para eventos, equipamentos"></textarea></div>
-          <div class="field"><label for="f-dem">Demandas / Necessidades Atuais</label><textarea id="f-dem" name="dem" rows="3" maxlength="800" placeholder="Ex.: Busca de parceiros de pesquisa, mentoria, investimento"></textarea></div>
+          <div class="field"><label for="f-comp">Competências e tecnologias</label><textarea id="f-comp" name="comp" rows="3" maxlength="800" placeholder="Separe por vírgula. Ex.: Desenvolvimento de software, análise de dados"></textarea></div>
+          <div class="panel-tag">Ativos</div>
+          <div class="field"><label for="f-rec">Recursos, serviços e conhecimentos que posso compartilhar</label><textarea id="f-rec" name="rec" rows="3" maxlength="800" placeholder="Ex.: investimento, laboratório, equipamentos, tecnologia, mentoria, equipe técnica"></textarea></div>
+          <div class="panel-tag">Demandas</div>
+          <div class="field"><label for="f-dem">Problemas, necessidades e parcerias que procuro</label><textarea id="f-dem" name="dem" rows="3" maxlength="800" placeholder="Ex.: investimento, parceiro de pesquisa, fornecedor, solução tecnológica"></textarea></div>
         </fieldset>
 
         <!-- Seção 4 -->
         <fieldset class="step" hidden>
-          <legend>📞 Seção 4: Informações para Contato e Autorização</legend>
+          <legend><svg class="ic"><use href="#i-user"/></svg> Seção 4: Informações para Contato e Autorização</legend>
           <div class="field"><label for="f-site">Site Institucional <small>(insira o link)</small></label><input id="f-site" name="site" type="url" placeholder="https://"><span class="err" data-err="site"></span></div>
           <div class="field"><label for="f-email">E-mail Institucional Para Contato</label><input id="f-email" name="email" type="email" placeholder="contato@organizacao.com.br"><span class="err" data-err="email"></span></div>
           <div class="field">
@@ -432,6 +443,9 @@
         </div>
       </form>
     </section>
+
+    <section data-view="conexoes" hidden><div class="panel-head-row"><div><div class="panel-tag">Matchmaking</div><h2 class="h2 first">Central de conexões</h2><p class="muted">Encontre participantes com ativos compatíveis com suas demandas e inicie uma conversa.</p></div><button class="btn btn-ghost-dark btn-sm" type="button" data-action="app" data-view="nova">Atualizar ativos e demandas</button></div><div class="rows" id="matchList"></div></section>
+    <section data-view="mensagens" hidden><div class="panel-head-row"><div><div class="panel-tag">Conexões</div><h2 class="h2 first">Conversas e solicitações</h2><p class="muted">Aceite solicitações para liberar o chat com outros participantes.</p></div></div><div class="chat-layout"><div class="rows chat-inbox" id="messageList"></div><div class="panel chat-panel" id="chatPanel"><div class="chat-placeholder">Selecione uma conexão aceita para abrir o chat.</div></div></div></section>
 
     <!-- MINHAS ORGANIZAÇÕES -->
     <section data-view="minhas" hidden>
